@@ -1,27 +1,73 @@
 import java.sql.*;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class CarVerse {
+    static Scanner sc=new Scanner(System.in);
+    static Admin admin=new Admin();
+    static Customer customer=new Customer();
     public static void main(String[] args) throws SQLException {
-        Scanner sc=new Scanner(System.in);
-        Connection conn = DBConnect.getConnection();
-        Admin admin=new Admin();
-        Customer customer=new Customer();
-        System.out.println("1. Admin login");
-        System.out.println("2. User login");
-        System.out.println("3. User registration");
-        System.out.println("Enter choice from 1 to 3");
-        int choice= sc.nextInt();
-        switch (choice){
-            case 1:
-                admin.adminLogin();
+        int choice;
+        do{
+            System.out.println("1. Admin login");
+            System.out.println("2. User login");
+            System.out.println("3. User registration");
+            System.out.println("4. Exit");
+            System.out.println("Enter choice from 1 to 4");
+            choice= sc.nextInt();
+            switch (choice){
+                case 1:
+                    admin.adminLogin();
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    customer.customerRegistartion();
+                    break;
+                case 4:
+                    System.out.println("Good Bye>>>");
+            }
+        }while(choice!=4)
+    }
+    static void adminMenu()throws SQLException{
+        int choice;
+        do{
+            System.out.println("\n=== Admin Menu ===");
+            System.out.println("1. Add Car");
+            System.out.println("2. View All Cars");
+            System.out.println("3. Update Car Details");
+            System.out.println("4. View Available Cars");
+            System.out.println("5. Update Car Status");
+            System.out.println("6. View All Rentals");
+            System.out.println("7. View Overdue Rentals");
+            System.out.println("8. Generate Reports");
+            System.out.println("9. Logout");
+            System.out.print("Enter choice: ");
+            choice = sc.nextInt();
+            switch (choice) {
+                case 1 :
+                    admin.addCar();
                 break;
-            case 2:
-                break;
-            case 3:
-                customer.customerRegistartion();
-                break;
-        }
+                case 2 :
+                    break;
+                case 3 :
+                    break;
+                case 4 :
+                    break;
+                case 5 :
+                    break;
+                case 6 :
+                    break;
+                case 7 :
+                    break;
+                case 8 :
+                    break;
+                case 9 :
+                    System.out.println("Admin logged out.");
+                    break;
+                default : System.out.println("Invalid choice.");
+            }
+        }while (choice!=9);
     }
 }
 class DBConnect {
@@ -36,7 +82,19 @@ class DBConnect {
     }
 }
 class Car{
+    int id;
+    String model;
+    String brand;
+    double pricePerKm;
+    String availability;
 
+    public Car(int id, String model, String brand, double pricePerKm, String availability) {
+        this.id = id;
+        this.model = model;
+        this.brand = brand;
+        this.pricePerKm = pricePerKm;
+        this.availability = availability;
+    }
 }
 class Customer {
     Scanner sc = new Scanner(System.in);
@@ -99,6 +157,7 @@ class Customer {
 }
 class Admin{
     Scanner sc=new Scanner(System.in);
+    HashMap<Integer, Car> carMap = new HashMap<>();
     void adminLogin()throws SQLException{
         Connection conn = DBConnect.getConnection();
         String query = "SELECT * FROM admin WHERE adminname = ? AND password = ?";
@@ -112,9 +171,40 @@ class Admin{
 
         if (rs.next()) {
             System.out.println("✅ Admin login successful!");
-//            Menu.adminMenu();  // continue with admin functions
+            Menu.adminMenu();  // continue with admin functions
         } else {
             System.out.println("❌ Invalid username or password.");
+        }
+    }
+    void addCar()throws SQLException{
+        Connection conn = DBConnect.getConnection();
+        String sql = "INSERT INTO car (model, brand, price_per_km, availability) VALUES (?, ?, ?, ?)";
+        PreparedStatement pst = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        System.out.println("\n=== Add New Car ===");
+        System.out.print("Enter car model: ");
+        String model = sc.nextLine();
+        pst.setString(1, model);
+        System.out.print("Enter car brand: ");
+        String brand = sc.nextLine();
+        pst.setString(2, brand);
+        System.out.print("Enter price per km: ");
+        double pricePerKm = sc.nextDouble();
+        pst.setDouble(3, pricePerKm);
+        String availability = "Available";
+        pst.setString(4, availability);
+        if (pst.executeUpdate() > 0) {
+            ResultSet rs = pst.getGeneratedKeys();
+            if (rs.next()) {
+                int id = rs.getInt(1); // get auto-generated ID
+
+                // Create Car object and store in HashMap
+                Car car = new Car(id, model, brand, pricePerKm, availability);
+                carMap.put(id, car);
+
+                System.out.println("✅ Car added with ID: " + id);
+            }
+        } else {
+            System.out.println("❌ Failed to add car.");
         }
     }
 }
