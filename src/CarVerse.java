@@ -2,6 +2,9 @@ import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class CarVerse {
     static Scanner sc=new Scanner(System.in);
@@ -39,7 +42,7 @@ public class CarVerse {
             System.out.println("2. View All Cars");
             System.out.println("3. Update Car Details");
             System.out.println("4. View Available Cars");
-            System.out.println("5. Update Car Status");
+            System.out.println("5. Update Car Availability");
             System.out.println("6. View All Rentals");
             System.out.println("7. View Overdue Rentals");
             System.out.println("8. Generate Reports");
@@ -51,11 +54,13 @@ public class CarVerse {
                     admin.addCar();
                     break;
                 case 2 :
+                    admin.viewAllCars();
                     break;
                 case 3 :
                     admin.updateCarDetails();
                     break;
                 case 4 :
+                    admin.viewAvailableCars();
                     break;
                 case 5 :
                     break;
@@ -152,14 +157,24 @@ class Customer {
         }
         System.out.print("Enter address: ");
         String address=sc.nextLine();
-        System.out.println("Enter date of birth in dd-mm-yyyy format");
-        String dob=sc.nextLine();
+        LocalDate dob;
+        while (true) {
+            System.out.print("Enter date of birth (dd-MM-yyyy): ");
+            String dobInput = sc.nextLine();
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                dob = LocalDate.parse(dobInput, formatter);
+                break;
+            } catch (DateTimeParseException e) {
+                System.out.println("❌ Invalid date format. Please use dd-MM-yyyy.");
+            }
+        }
         PreparedStatement ps=conn.prepareStatement("INSERT INTO customer(name, email, phone_no, address, dob) VALUES (?, ?, ?, ?, ?)");
         ps.setString(1, name);
         ps.setString(2, email);
         ps.setString(3, phone);
         ps.setString(4, address);
-        ps.setString(5, dob);
+        ps.setDate(5, Date.valueOf(dob));
         ps.executeUpdate();
         System.out.println("✅ Registration successful!");
         customerPasswordMap.put(email, password);
@@ -296,7 +311,33 @@ class Admin{
             System.out.println("❌ Failed to add car.");
         }
     }
-        void updateCarDetails() throws SQLException {
+    void viewAllCars() throws SQLException{
+        Connection conn = DBConnect.getConnection();
+        String query = "SELECT * FROM car";
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(query);
+        System.out.println("\n=============================");
+        System.out.println("🚗  Car List");
+        System.out.println("=============================");
+        System.out.printf("%-5s %-12s %-10s %-10s %-6s %-14s %-12s\n", "ID", "Model", "Brand", "Type", "Seats", "Price/Hour", "Status");
+        System.out.println("---------------------------------------------------------------------");
+
+        while (rs.next()) {
+            int id = rs.getInt("id");
+            String model = rs.getString("model");
+            String brand = rs.getString("brand");
+            String type = rs.getString("type");
+            int seats = rs.getInt("seats");
+            double price = rs.getDouble("price_per_hour");
+
+            // Convert boolean to human-readable
+            boolean available = rs.getBoolean("availability");
+            String status = available ? "Available" : "Booked";
+
+            System.out.printf("%-5d %-12s %-10s %-10s %-6d ₹%-13.2f %-12s\n", id, model, brand, type, seats, price, status);
+        }
+    }
+    void updateCarDetails() throws SQLException {
         Connection conn = DBConnect.getConnection();;
         System.out.print("Enter Car ID to update: ");
         int carId = sc.nextInt();
@@ -342,7 +383,37 @@ class Admin{
         int r = ps.executeUpdate();
         System.out.println(r > 0 ? "Car updated successfully." : "Car update failed.");
     }
+    void viewAvailableCars() throws SQLException{
+        Connection conn = DBConnect.getConnection();
+        Statement stmt = conn.createStatement();
+        String query = "SELECT * FROM car WHERE availability = 1";
+        ResultSet rs = stmt.executeQuery(query);
+        System.out.println("\n==============================");
+        System.out.println("🚗  Available Cars for Rent");
+        System.out.println("==============================");
 
+        System.out.printf("%-5s %-12s %-10s %-10s %-6s %-14s\n",
+                "ID", "Model", "Brand", "Type", "Seats", "Price/Hour");
+
+        System.out.println("----------------------------------------------------------");
+
+        boolean hasCars = false;
+        while (rs.next()) {
+            hasCars = true;
+            int id = rs.getInt("id");
+            String model = rs.getString("model");
+            String brand = rs.getString("brand");
+            String type = rs.getString("type");
+            int seats = rs.getInt("seats");
+            double price = rs.getDouble("price_per_hour");
+
+            System.out.printf("%-5d %-12s %-10s %-10s %-6d ₹%-13.2f\n", id, model, brand, type, seats, price);
+        }
+
+        if (!hasCars) {
+            System.out.println("❌ No cars are currently available.");
+        }
+    }
 }
 class Rental{
 
