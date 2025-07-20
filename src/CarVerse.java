@@ -90,10 +90,10 @@ class Car{
     String brand;
     String type;
     double pricePerHour;
-    String availability;
+    boolean availability;
     int seats;
 
-    public Car(int car_id, String model, String brand,String type, double pricePerHour, String availability,int seats) {
+    public Car(int car_id, String model, String brand,String type, double pricePerHour, boolean availability,int seats) {
         this.car_id= car_id;
         this.model = model;
         this.brand = brand;
@@ -109,7 +109,7 @@ class Customer {
 
     void customerRegistartion() throws SQLException {
         Connection conn = DBConnect.getConnection();
-        Scanner sc=new Scanner(System.in);
+        sc=new Scanner(System.in);
         System.out.print("Enter name: ");
         String name=sc.nextLine();
         String email;
@@ -167,7 +167,7 @@ class Customer {
     }
     void customerLogin() throws SQLException {
         Connection conn = DBConnect.getConnection();
-        Scanner sc = new Scanner(System.in);
+        sc = new Scanner(System.in);
 
         System.out.println("===== Customer Login =====");
         System.out.println("1. Login using Email and Password");
@@ -261,7 +261,7 @@ class Admin{
     }
     void addCar()throws SQLException{
         Connection conn = DBConnect.getConnection();
-        String sql = "INSERT INTO car (model, brand, type, price_per_hour, availability, seats, rating) VALUES (?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO car (model, brand, type, price_per_hour, availability, seats) VALUES (?,?,?,?,?,?,?)";
         PreparedStatement pst = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
         System.out.println("\n=== Add New Car ===");
         System.out.print("Enter car model: ");
@@ -276,8 +276,8 @@ class Admin{
         System.out.print("Enter price per hour: ");
         double pricePerHour = sc.nextDouble();
         pst.setDouble(4, pricePerHour);
-        String availability = "Available";
-        pst.setString(5, availability);
+        boolean availability = true;
+        pst.setBoolean(5, availability);
         System.out.println("Enter seats: ");
         int seats= sc.nextInt();
         pst.setInt(6,seats);
@@ -321,7 +321,7 @@ class Admin{
             column = "price_per_hour";
             System.out.print("Enter new price/hour: ");
         } else if (choice == 4) {
-            column = "is_available";
+            column = "availability";
             System.out.print("Enter availability (true/false): ");
         } else {
             System.out.println("Invalid choice.");
@@ -333,7 +333,7 @@ class Admin{
         PreparedStatement ps = conn.prepareStatement(query);
         if (column.equals("price_per_hour"))
             ps.setDouble(1, Double.parseDouble(newValue));
-        else if (column.equals("is_available"))
+        else if (column.equals("availability"))
             ps.setBoolean(1, Boolean.parseBoolean(newValue));
         else
             ps.setString(1, newValue);
