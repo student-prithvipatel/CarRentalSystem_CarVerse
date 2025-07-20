@@ -1,5 +1,6 @@
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class CarVerse {
@@ -20,6 +21,7 @@ public class CarVerse {
                     admin.adminLogin();
                     break;
                 case 2:
+                    customer.customerLogin();
                     break;
                 case 3:
                     customer.customerRegistartion();
@@ -27,7 +29,7 @@ public class CarVerse {
                 case 4:
                     System.out.println("Good Bye>>>");
             }
-        }while(choice!=4)
+        }while(choice!=4);
     }
     static void adminMenu()throws SQLException{
         int choice;
@@ -47,7 +49,7 @@ public class CarVerse {
             switch (choice) {
                 case 1 :
                     admin.addCar();
-                break;
+                    break;
                 case 2 :
                     break;
                 case 3 :
@@ -82,22 +84,28 @@ class DBConnect {
     }
 }
 class Car{
-    int id;
+    int car_id;
     String model;
     String brand;
-    double pricePerKm;
+    String type;
+    double pricePerHour;
     String availability;
+    int seats;
 
-    public Car(int id, String model, String brand, double pricePerKm, String availability) {
-        this.id = id;
+    public Car(int car_id, String model, String brand,String type, double pricePerHour, String availability,int seats) {
+        this.car_id= car_id;
         this.model = model;
         this.brand = brand;
-        this.pricePerKm = pricePerKm;
+        this.type = type;
+        this.pricePerHour = pricePerHour;
         this.availability = availability;
+        this.seats = seats;
     }
 }
 class Customer {
     Scanner sc = new Scanner(System.in);
+    Map<String, String> customerPasswordMap = new HashMap<>();
+
     void customerRegistartion() throws SQLException {
         Connection conn = DBConnect.getConnection();
         Scanner sc=new Scanner(System.in);
@@ -153,7 +161,81 @@ class Customer {
         ps.setString(5, dob);
         ps.executeUpdate();
         System.out.println("✅ Registration successful!");
+        customerPasswordMap.put(email, password);
+        customerPasswordMap.put(phone, password);
     }
+     void customerLogin() throws SQLException {
+        Connection conn = DBConnect.getConnection();
+        Scanner sc = new Scanner(System.in);
+
+        System.out.println("===== Customer Login =====");
+        System.out.println("1. Login using Email and Password");
+        System.out.println("2. Login using Phone Number and Password");
+        System.out.print("Choose an option (1 or 2): ");
+        int choice = sc.nextInt();
+        sc.nextLine();
+        PreparedStatement ps;
+        ResultSet rs;
+        String input;
+        String password;
+
+        switch (choice) {
+            case 1: {
+                System.out.print("Enter email: ");
+                input = sc.nextLine().toLowerCase();
+
+                // Check registration from DB
+                String query = "SELECT * FROM customer WHERE email = ?";
+                ps = conn.prepareStatement(query);
+                ps.setString(1, input);
+                rs = ps.executeQuery();
+
+                if (!rs.next()) {
+                    System.out.println("❌ No account found with this email. Please register first.");
+                } else if (!customerPasswordMap.containsKey(input)) {
+                    System.out.println("❌ Password not found in memory. Please re-register.");
+                } else {
+                    System.out.print("Enter password: ");
+                    password = sc.nextLine();
+
+                    if (customerPasswordMap.get(input).equals(password)) {
+                        System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
+                    } else {
+                        System.out.println("❌ Incorrect password.");
+                    }
+                }
+                break;
+            }
+            case 2: {
+                System.out.print("Enter phone number: ");
+                input = sc.nextLine();
+
+                // Check registration from DB
+                String query = "SELECT * FROM customer WHERE phone_no = ?";
+                ps = conn.prepareStatement(query);
+                ps.setString(1, input);
+                rs = ps.executeQuery();
+
+                if (!rs.next()) {
+                    System.out.println("❌ No account found with this phone number. Please register first.");
+                } else if (!customerPasswordMap.containsKey(input)) {
+                    System.out.println("❌ Password not found in memory. Please re-register.");
+                } else {
+                    System.out.print("Enter password: ");
+                    password = sc.nextLine();
+                    if (customerPasswordMap.get(input).equals(password)) {
+                        System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
+                    } else {
+                        System.out.println("❌ Incorrect password.");
+                    }
+                }
+                break;
+            }
+            default:
+                System.out.println("❌ Invalid choice. Please select 1 or 2.");
+        }
+    }
+
 }
 class Admin{
     Scanner sc=new Scanner(System.in);
@@ -171,14 +253,14 @@ class Admin{
 
         if (rs.next()) {
             System.out.println("✅ Admin login successful!");
-            Menu.adminMenu();  // continue with admin functions
+            CarVerse.adminMenu();  // continue with admin functions
         } else {
             System.out.println("❌ Invalid username or password.");
         }
     }
     void addCar()throws SQLException{
         Connection conn = DBConnect.getConnection();
-        String sql = "INSERT INTO car (model, brand, price_per_km, availability) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO car (model, brand, type, price_per_hour, availability, seats, rating) VALUES (?,?,?,?,?,?,?)";
         PreparedStatement pst = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
         System.out.println("\n=== Add New Car ===");
         System.out.print("Enter car model: ");
@@ -187,18 +269,24 @@ class Admin{
         System.out.print("Enter car brand: ");
         String brand = sc.nextLine();
         pst.setString(2, brand);
-        System.out.print("Enter price per km: ");
-        double pricePerKm = sc.nextDouble();
-        pst.setDouble(3, pricePerKm);
+        System.out.print("Enter car type: ");
+        String type = sc.nextLine();
+        pst.setString(3, type);
+        System.out.print("Enter price per hour: ");
+        double pricePerHour = sc.nextDouble();
+        pst.setDouble(4, pricePerHour);
         String availability = "Available";
-        pst.setString(4, availability);
+        pst.setString(5, availability);
+        System.out.println("Enter seats: ");
+        int seats= sc.nextInt();
+        pst.setInt(6,seats);
         if (pst.executeUpdate() > 0) {
             ResultSet rs = pst.getGeneratedKeys();
             if (rs.next()) {
                 int id = rs.getInt(1); // get auto-generated ID
 
                 // Create Car object and store in HashMap
-                Car car = new Car(id, model, brand, pricePerKm, availability);
+                Car car = new Car(id, model, brand,type, pricePerHour,availability,seats);
                 carMap.put(id, car);
 
                 System.out.println("✅ Car added with ID: " + id);
