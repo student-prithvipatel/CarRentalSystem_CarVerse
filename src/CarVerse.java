@@ -53,6 +53,7 @@ public class CarVerse {
                 case 2 :
                     break;
                 case 3 :
+                    admin.updateCarDetails();
                     break;
                 case 4 :
                     break;
@@ -164,7 +165,7 @@ class Customer {
         customerPasswordMap.put(email, password);
         customerPasswordMap.put(phone, password);
     }
-     void customerLogin() throws SQLException {
+    void customerLogin() throws SQLException {
         Connection conn = DBConnect.getConnection();
         Scanner sc = new Scanner(System.in);
 
@@ -295,6 +296,53 @@ class Admin{
             System.out.println("❌ Failed to add car.");
         }
     }
+        void updateCarDetails() throws SQLException {
+        Connection conn = DBConnect.getConnection();;
+        System.out.print("Enter Car ID to update: ");
+        int carId = sc.nextInt();
+        sc.nextLine();
+        System.out.println("Choose detail to update:");
+        System.out.println("1. Brand");
+        System.out.println("2. Model");
+        System.out.println("3. Price per Hour");
+        System.out.println("4. Availability (true/false)");
+        System.out.print("Enter choice: ");
+        int choice = sc.nextInt();
+        sc.nextLine();
+        String column = "";
+        String newValue = "";
+        if (choice == 1) {
+            column = "brand";
+            System.out.print("Enter new brand: ");
+        } else if (choice == 2) {
+            column = "model";
+            System.out.print("Enter new model: ");
+        } else if (choice == 3) {
+            column = "price_per_hour";
+            System.out.print("Enter new price/hour: ");
+        } else if (choice == 4) {
+            column = "is_available";
+            System.out.print("Enter availability (true/false): ");
+        } else {
+            System.out.println("Invalid choice.");
+            return;
+        }
+        newValue = sc.nextLine();
+        // Build and run update query
+        String query = "UPDATE cars SET " + column + " = ? WHERE car_id = ?";
+        PreparedStatement ps = conn.prepareStatement(query);
+        if (column.equals("price_per_hour"))
+            ps.setDouble(1, Double.parseDouble(newValue));
+        else if (column.equals("is_available"))
+            ps.setBoolean(1, Boolean.parseBoolean(newValue));
+        else
+            ps.setString(1, newValue);
+        ps.setInt(2, carId);
+
+        int r = ps.executeUpdate();
+        System.out.println(r > 0 ? "Car updated successfully." : "Car update failed.");
+    }
+
 }
 class Rental{
 
