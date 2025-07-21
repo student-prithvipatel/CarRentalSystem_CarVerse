@@ -46,10 +46,11 @@ public class CarVerse {
             System.out.println("3. Update Car Details");
             System.out.println("4. View Available Cars");
             System.out.println("5. Update Car Availability");
-            System.out.println("6. View All Rentals");
+            System.out.println("6. Currently Rented Cars");
             System.out.println("7. View Overdue Rentals");
             System.out.println("8. Generate Reports");
-            System.out.println("9. Logout");
+            System.out.println("9. Remove Car");
+            System.out.println("10. Logout");
             System.out.print("Enter choice: ");
             choice = sc.nextInt();
             switch (choice) {
@@ -66,19 +67,26 @@ public class CarVerse {
                     admin.viewAvailableCars();
                     break;
                 case 5 :
+                    admin.updateCarAvailability();
                     break;
                 case 6 :
+                    admin.viewCurrentlyRentedCars();
                     break;
                 case 7 :
+                    admin.viewOverdueRentals();
                     break;
                 case 8 :
+                    admin.generateReports();
                     break;
                 case 9 :
+                    admin.removeCar();
+                    break;
+                case 10 :
                     System.out.println("Admin logged out.");
                     break;
                 default : System.out.println("Invalid choice.");
             }
-        }while (choice!=9);
+        }while (choice!=10);
     }
     static void customerMenu() throws SQLException {
         int choice;
@@ -552,6 +560,204 @@ class Admin{
 
         if (!hasCars) {
             System.out.println("❌ No cars are currently available.");
+        }
+    }
+    void updateCarAvailability() throws SQLException {
+        Connection conn = DBConnect.getConnection();
+        System.out.print("Enter Car ID to update availability: ");
+        int carId = sc.nextInt();
+        sc.nextLine();
+
+        // Check if car exists
+        String checkQuery = "SELECT * FROM car WHERE id = ?";
+        PreparedStatement checkPs = conn.prepareStatement(checkQuery);
+        checkPs.setInt(1, carId);
+        ResultSet rs = checkPs.executeQuery();
+
+        if (!rs.next()) {
+            System.out.println("❌ Car ID not found.");
+            return;
+        }
+
+        System.out.print("Set availability (true for available, false for not available): ");
+        boolean availability = sc.nextBoolean();
+
+        String updateQuery = "UPDATE car SET availability = ? WHERE id = ?";
+        PreparedStatement updatePs = conn.prepareStatement(updateQuery);
+        updatePs.setBoolean(1, availability);
+        updatePs.setInt(2, carId);
+
+        int rowsUpdated = updatePs.executeUpdate();
+        if (rowsUpdated > 0) {
+            System.out.println("✅ Car availability updated successfully.");
+            // Optional: update in local HashMap as well if you’re keeping it in memory
+            if(carMap.containsKey(carId)) {
+                carMap.get(carId).availability = availability;
+            }
+        } else {
+            System.out.println("❌ Failed to update car availability.");
+        }
+    }
+    void viewCurrentlyRentedCars() throws SQLException {
+        Connection conn = DBConnect.getConnection();
+        // Assumption: rental table exists with columns: rental_id, car_id, customer_id, rent_date, return_date -
+        // Only rows with NULL return_date are considered "currently rented".
+        String query =
+                "SELECT r.rental_id, c.id AS car_id, c.model, c.brand, c.type, c.seats, c.price_per_hour, cu.name AS customer_name, cu.phone_no, r.rent_date " +
+                        "FROM rental r " +
+                        "JOIN car c ON r.car_id = c.id " +
+                        "JOIN customer cu ON r.customer_id = cu.id " +
+                        "WHERE r.return_date IS NULL";
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(query);
+
+        System.out.println("\n==============================");
+        System.out.println("🚘 Currently Rented Cars");
+        System.out.println("==============================");
+        System.out.printf("%-5s %-5s %-12s %-10s %-10s %-5s %-12s %-18s %-12s %-12s\n",
+                "RId", "CID", "Model", "Brand", "Type", "Seat", "Price/Hour", "Customer Name", "Phone", "Rent Date");
+
+        boolean hasResults = false;
+        while (rs.next()) {
+            hasResults = true;
+            int rentalId = rs.getInt("rental_id");
+            int carId = rs.getInt("car_id");
+            String model = rs.getString("model");
+            String brand = rs.getString("brand");
+            String type = rs.getString("type");
+            int seats = rs.getInt("seats");
+            double price = rs.getDouble("price_per_hour");
+            String customerName = rs.getString("customer_name");
+            String phone = rs.getString("phone_no");
+            Date rentDate = rs.getDate("rent_date");
+
+            System.out.printf("%-5d %-5d %-12s %-10s %-10s %-5d ₹%-11.2f %-18s %-12s %-12s\n",
+                    rentalId, carId, model, brand, type, seats, price, customerName, phone, rentDate);
+        }
+        if (!hasResults) {
+            System.out.println("❌ No cars are currently rented out.");
+        }
+    }
+    void viewOverdueRentals() throws SQLException {
+        Connection conn = DBConnect.getConnection();
+        // Query: Select all rentals not returned yet and overdue
+        String query =
+                "SELECT r.rental_id, c.id AS car_id, c.model, c.brand, cu.name AS customer_name, cu.phone_no, r.rent_date, r.due_date " +
+                        "FROM rental r " +
+                        "JOIN car c ON r.car_id = c.id " +
+                        "JOIN customer cu ON r.customer_id = cu.id " +
+                        "WHERE r.return_date IS NULL AND r.due_date < CURDATE()";
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(query);
+
+        System.out.println("\n==============================");
+        System.out.println("🚨 Overdue Rentals");
+        System.out.println("==============================");
+        System.out.printf("%-5s %-5s %-12s %-10s %-15s %-12s %-12s %-12s\n",
+                "RId", "CID", "Model", "Brand", "Customer", "Phone", "Rent Date", "Due Date");
+
+        boolean found = false;
+        while (rs.next()) {
+            found = true;
+            int rentalId = rs.getInt("rental_id");
+            int carId = rs.getInt("car_id");
+            String model = rs.getString("model");
+            String brand = rs.getString("brand");
+            String customer = rs.getString("customer_name");
+            String phone = rs.getString("phone_no");
+            Date rentDate = rs.getDate("rent_date");
+            Date dueDate = rs.getDate("due_date");
+
+            System.out.printf("%-5d %-5d %-12s %-10s %-15s %-12s %-12s %-12s\n",
+                    rentalId, carId, model, brand, customer, phone, rentDate, dueDate);
+        }
+        if (!found) {
+            System.out.println("❌ No overdue rentals found.");
+        }
+    }
+    void generateReports() throws SQLException {
+        Connection conn = DBConnect.getConnection();
+
+        // Total number of cars
+        String totalCarsQuery = "SELECT COUNT(*) AS total_cars FROM car";
+        Statement stmt1 = conn.createStatement();
+        ResultSet rs1 = stmt1.executeQuery(totalCarsQuery);
+        int totalCars = 0;
+        if(rs1.next()) totalCars = rs1.getInt("total_cars");
+
+        // Total rentals
+        String totalRentalsQuery = "SELECT COUNT(*) AS total_rentals FROM rental";
+        Statement stmt2 = conn.createStatement();
+        ResultSet rs2 = stmt2.executeQuery(totalRentalsQuery);
+        int totalRentals = 0;
+        if(rs2.next()) totalRentals = rs2.getInt("total_rentals");
+
+        // Currently available cars
+        String availableCarsQuery = "SELECT COUNT(*) AS available FROM car WHERE availability = 1";
+        Statement stmt3 = conn.createStatement();
+        ResultSet rs3 = stmt3.executeQuery(availableCarsQuery);
+        int availableCars = 0;
+        if(rs3.next()) availableCars = rs3.getInt("available");
+
+        // Currently rented cars
+        String rentedCarsQuery = "SELECT COUNT(*) AS rented FROM rental WHERE return_date IS NULL";
+        Statement stmt4 = conn.createStatement();
+        ResultSet rs4 = stmt4.executeQuery(rentedCarsQuery);
+        int rentedCars = 0;
+        if(rs4.next()) rentedCars = rs4.getInt("rented");
+
+        // Overdue rentals
+        String overdueQuery = "SELECT COUNT(*) AS overdue FROM rental WHERE return_date IS NULL AND due_date < CURDATE()";
+        Statement stmt5 = conn.createStatement();
+        ResultSet rs5 = stmt5.executeQuery(overdueQuery);
+        int overdueCount = 0;
+        if(rs5.next()) overdueCount = rs5.getInt("overdue");
+
+        // Total revenue (assumes you have a column 'total_price' in rental)
+        String totalRevenueQuery = "SELECT IFNULL(SUM(total_price), 0) AS revenue FROM rental WHERE total_price IS NOT NULL";
+        Statement stmt6 = conn.createStatement();
+        ResultSet rs6 = stmt6.executeQuery(totalRevenueQuery);
+        double totalRevenue = 0;
+        if(rs6.next()) totalRevenue = rs6.getDouble("revenue");
+
+        System.out.println("\n=========== REPORTS ===========");
+        System.out.println("Total Number of Cars: " + totalCars);
+        System.out.println("Total Number of Rentals: " + totalRentals);
+        System.out.println("Currently Available Cars: " + availableCars);
+        System.out.println("Currently Rented Cars: " + rentedCars);
+        System.out.println("Overdue Rentals: " + overdueCount);
+        System.out.printf("Total Revenue: ₹%.2f\n", totalRevenue);
+        System.out.println("===============================\n");
+    }
+    void removeCar() throws SQLException {
+        Connection conn = DBConnect.getConnection();
+        System.out.print("Enter Car ID to remove: ");
+        int carId = sc.nextInt();
+        sc.nextLine();
+
+        // Check if a car exists
+        String checkQuery = "SELECT * FROM car WHERE id = ?";
+        PreparedStatement checkPs = conn.prepareStatement(checkQuery);
+        checkPs.setInt(1, carId);
+        ResultSet rs = checkPs.executeQuery();
+
+        if (!rs.next()) {
+            System.out.println("❌ Car ID not found.");
+            return;
+        }
+
+        // Proceed to delete
+        String deleteQuery = "DELETE FROM car WHERE id = ?";
+        PreparedStatement deletePs = conn.prepareStatement(deleteQuery);
+        deletePs.setInt(1, carId);
+
+        int result = deletePs.executeUpdate();
+        if (result > 0) {
+            carMap.remove(carId); // Remove from HashMap if using in-memory as well
+            System.out.println("✅ Car with ID " + carId + " removed successfully.");
+        } else {
+            System.out.println("❌ Failed to remove car. Please check Car ID.");
         }
     }
 }
