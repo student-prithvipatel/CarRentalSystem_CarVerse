@@ -1,4 +1,3 @@
-
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,10 +43,11 @@ public class CarVerse {
             System.out.println("3. Update Car Details");
             System.out.println("4. View Available Cars");
             System.out.println("5. Update Car Availability");
-            System.out.println("6. View All Rentals");
+            System.out.println("6. Currently Rented Cars");
             System.out.println("7. View Overdue Rentals");
             System.out.println("8. Generate Reports");
-            System.out.println("9. Logout");
+            System.out.println("9. Remove Car");
+            System.out.println("10. Logout");
             System.out.print("Enter choice: ");
             choice = sc.nextInt();
             switch (choice) {
@@ -72,57 +72,21 @@ public class CarVerse {
                 case 8 :
                     break;
                 case 9 :
+                    admin.removeCar();
+                    break;
+                case 10 :
                     System.out.println("Admin logged out.");
                     break;
                 default : System.out.println("Invalid choice.");
             }
-        }while (choice!=9);
+        }while (choice!=10);
     }
-    static void customerMenu() throws SQLException {
-        int choice;
-        do {
-            System.out.println("\n=== Customer Menu ===");
-            System.out.println("1. Search Available Cars");
-            System.out.println("2. Book a Car");
-            System.out.println("3. View My Bookings");
-            System.out.println("4. Cancel Booking");
-            System.out.println("5. Rate a Car");
-            System.out.println("6. Logout");
-            System.out.print("Enter choice: ");
-            choice = sc.nextInt();
-            sc.nextLine();
-
-            switch (choice) {
-                case 1:
-                    admin.viewAvailableCars();
-                    break;
-                case 2:
-                    customer.bookCar();
-                    break;
-                case 3:
-                    customer.viewMyBookings();
-                    break;
-                case 4:
-                    customer.cancelBooking();
-                    break;
-                case 5:
-                    customer.giveRating();
-                    break;
-                case 6:
-                    System.out.println("Logged out.");
-                    break;
-                default:
-                    System.out.println("Invalid choice.");
-            }
-        } while (choice != 6);
-    }
-
 }
 class DBConnect {
 
-    static final String URL = "jdbc:mysql://localhost:3306/carrental"; // replace with your DB name
-    static final String USER = "root";       // replace with your DB username
-    static final String PASSWORD = "";   // replace with your DB password
+    static final String URL = "jdbc:mysql://localhost:3306/carrental"; // replace it with your DB name
+    static final String USER = "root";       // replace it with your DB username
+    static final String PASSWORD = "";   // replace it with your DB password
 
     // This method will give you the connection wherever you call it
     public static Connection getConnection() throws SQLException {
@@ -154,6 +118,7 @@ class Customer {
 
     void customerRegistartion() throws SQLException {
         Connection conn = DBConnect.getConnection();
+        sc=new Scanner(System.in);
         System.out.print("Enter name: ");
         String name=sc.nextLine();
         String email;
@@ -221,6 +186,8 @@ class Customer {
     }
     void customerLogin() throws SQLException {
         Connection conn = DBConnect.getConnection();
+        sc = new Scanner(System.in);
+
         System.out.println("===== Customer Login =====");
         System.out.println("1. Login using Email and Password");
         System.out.println("2. Login using Phone Number and Password");
@@ -253,7 +220,6 @@ class Customer {
 
                     if (customerPasswordMap.get(input).equals(password)) {
                         System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
-                        CarVerse.customerMenu();
                     } else {
                         System.out.println("❌ Incorrect password.");
                     }
@@ -279,7 +245,6 @@ class Customer {
                     password = sc.nextLine();
                     if (customerPasswordMap.get(input).equals(password)) {
                         System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
-                        CarVerse.customerMenu();
                     } else {
                         System.out.println("❌ Incorrect password.");
                     }
@@ -289,39 +254,6 @@ class Customer {
             default:
                 System.out.println("❌ Invalid choice. Please select 1 or 2.");
         }
-    }
-    void bookCar()
-    {
-
-    }
-    void viewMyBookings()
-    {
-        
-    }
-    void cancelBooking()
-    {
-
-    }
-
-    public void giveRating() throws SQLException {
-        Connection conn = DBConnect.getConnection();
-        System.out.print("Enter Car ID to rate: ");
-        int carId = sc.nextInt();
-        System.out.print("Enter rating (1 to 5): ");
-        int rating = sc.nextInt();
-        if (rating < 1 || rating > 5) {
-            System.out.println("Invalid rating. Must be 1–5.");
-            return;
-        }
-        String query = "UPDATE cars SET rating = ? WHERE car_id = ?";
-        PreparedStatement ps = conn.prepareStatement(query);
-        ps.setInt(1, rating);
-        ps.setInt(2, carId);
-        int r = ps.executeUpdate();
-        if (r > 0)
-            System.out.println("Rating submitted successfully.");
-        else
-            System.out.println("Failed to rate car.");
     }
 
 }
@@ -486,6 +418,37 @@ class Admin{
             System.out.println("❌ No cars are currently available.");
         }
     }
+    void removeCar() throws SQLException {
+        Connection conn = DBConnect.getConnection();
+        System.out.print("Enter Car ID to remove: ");
+        int carId = sc.nextInt();
+        sc.nextLine();
+
+        // Check if a car exists
+        String checkQuery = "SELECT * FROM car WHERE id = ?";
+        PreparedStatement checkPs = conn.prepareStatement(checkQuery);
+        checkPs.setInt(1, carId);
+        ResultSet rs = checkPs.executeQuery();
+
+        if (!rs.next()) {
+            System.out.println("❌ Car ID not found.");
+            return;
+        }
+
+        // Proceed to delete
+        String deleteQuery = "DELETE FROM car WHERE id = ?";
+        PreparedStatement deletePs = conn.prepareStatement(deleteQuery);
+        deletePs.setInt(1, carId);
+
+        int result = deletePs.executeUpdate();
+        if (result > 0) {
+            carMap.remove(carId); // Remove from HashMap if using in-memory as well
+            System.out.println("✅ Car with ID " + carId + " removed successfully.");
+        } else {
+            System.out.println("❌ Failed to remove car. Please check Car ID.");
+        }
+    }
+
 }
 class Rental{
 
