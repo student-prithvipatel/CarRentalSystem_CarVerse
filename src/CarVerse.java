@@ -1,3 +1,4 @@
+
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -77,6 +78,45 @@ public class CarVerse {
             }
         }while (choice!=9);
     }
+    static void customerMenu() throws SQLException {
+        int choice;
+        do {
+            System.out.println("\n=== Customer Menu ===");
+            System.out.println("1. Search Available Cars");
+            System.out.println("2. Book a Car");
+            System.out.println("3. View My Bookings");
+            System.out.println("4. Cancel Booking");
+            System.out.println("5. Rate a Car");
+            System.out.println("6. Logout");
+            System.out.print("Enter choice: ");
+            choice = sc.nextInt();
+            sc.nextLine();
+
+            switch (choice) {
+                case 1:
+                    admin.viewAvailableCars();
+                    break;
+                case 2:
+                    customer.bookCar();
+                    break;
+                case 3:
+                    customer.viewMyBookings();
+                    break;
+                case 4:
+                    customer.cancelBooking();
+                    break;
+                case 5:
+                    customer.giveRating();
+                    break;
+                case 6:
+                    System.out.println("Logged out.");
+                    break;
+                default:
+                    System.out.println("Invalid choice.");
+            }
+        } while (choice != 6);
+    }
+
 }
 class DBConnect {
 
@@ -114,7 +154,6 @@ class Customer {
 
     void customerRegistartion() throws SQLException {
         Connection conn = DBConnect.getConnection();
-        sc=new Scanner(System.in);
         System.out.print("Enter name: ");
         String name=sc.nextLine();
         String email;
@@ -182,8 +221,6 @@ class Customer {
     }
     void customerLogin() throws SQLException {
         Connection conn = DBConnect.getConnection();
-        sc = new Scanner(System.in);
-
         System.out.println("===== Customer Login =====");
         System.out.println("1. Login using Email and Password");
         System.out.println("2. Login using Phone Number and Password");
@@ -216,6 +253,7 @@ class Customer {
 
                     if (customerPasswordMap.get(input).equals(password)) {
                         System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
+                        CarVerse.customerMenu();
                     } else {
                         System.out.println("❌ Incorrect password.");
                     }
@@ -241,6 +279,7 @@ class Customer {
                     password = sc.nextLine();
                     if (customerPasswordMap.get(input).equals(password)) {
                         System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
+                        CarVerse.customerMenu();
                     } else {
                         System.out.println("❌ Incorrect password.");
                     }
@@ -250,6 +289,39 @@ class Customer {
             default:
                 System.out.println("❌ Invalid choice. Please select 1 or 2.");
         }
+    }
+    void bookCar()
+    {
+
+    }
+    void viewMyBookings()
+    {
+        
+    }
+    void cancelBooking()
+    {
+
+    }
+
+    public void giveRating() throws SQLException {
+        Connection conn = DBConnect.getConnection();
+        System.out.print("Enter Car ID to rate: ");
+        int carId = sc.nextInt();
+        System.out.print("Enter rating (1 to 5): ");
+        int rating = sc.nextInt();
+        if (rating < 1 || rating > 5) {
+            System.out.println("Invalid rating. Must be 1–5.");
+            return;
+        }
+        String query = "UPDATE cars SET rating = ? WHERE car_id = ?";
+        PreparedStatement ps = conn.prepareStatement(query);
+        ps.setInt(1, rating);
+        ps.setInt(2, carId);
+        int r = ps.executeUpdate();
+        if (r > 0)
+            System.out.println("Rating submitted successfully.");
+        else
+            System.out.println("Failed to rate car.");
     }
 
 }
