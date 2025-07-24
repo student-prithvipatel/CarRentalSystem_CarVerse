@@ -53,7 +53,7 @@ public class CarVerse {
             switch (choice) {
                 case 1 :
                     admin.addCar();
-                    break;
+                break;
                 case 2 :
                     admin.viewAllCars();
                     break;
@@ -106,16 +106,10 @@ public class CarVerse {
                 case 2:
                     System.out.println("****Available car list*****");
                     admin.viewAvailableCars();
-                    System.out.println("**************************");
-                    System.out.println();
-                    System.out.println("Enter customer Id to book");
-                    int c_id= sc.nextInt();
-                    customer.bookCar(c_id);
+                    customer.bookCar();
                     break;
                 case 3:
-                    System.out.println("Enter customer Id to book");
-                    int c_id2= sc.nextInt();
-                    customer.viewMyBookings(c_id2);
+                    customer.viewMyBookings();
                     break;
                 case 4:
                     customer.cancelBooking();
@@ -165,7 +159,7 @@ class Car{
 }
 class Customer{
     Scanner sc = new Scanner(System.in);
-
+    static int customer_Id;
     void customerRegistartion() throws SQLException {
         Connection conn = DBConnect.getConnection();
         System.out.print("Enter name: ");
@@ -233,15 +227,22 @@ class Customer{
                 System.out.println("❌ Invalid date format. Please use dd-MM-yyyy.");
             }
         }
-        PreparedStatement ps=conn.prepareStatement("INSERT INTO customer(name, email, phone_no, address, dob, password) VALUES (?, ?, ?, ?, ?, ?)");
+        PreparedStatement ps=conn.prepareStatement("INSERT INTO customer(name, email, phone_no, address, dob, password) VALUES (?, ?, ?, ?, ?, ?)",Statement.RETURN_GENERATED_KEYS);
         ps.setString(1, name);
         ps.setString(2, email);
         ps.setString(3, phone);
         ps.setString(4, address);
         ps.setDate(5, Date.valueOf(dob));
         ps.setString(6,password);
-        ps.executeUpdate();
-        System.out.println("✅ Registration successful!");
+        int rows = ps.executeUpdate();
+        if (rows > 0) {
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                int id = rs.getInt(1);
+                Customer.customer_Id = id;
+                System.out.println("✅ Registration successful! Your Customer ID is: " + id);
+            }
+        }
     }
     public void customerLogin() throws SQLException {
         Connection conn = DBConnect.getConnection();
@@ -275,6 +276,7 @@ class Customer{
 
                     String dbPassword = rs.getString("password");
                     if (password.equals(dbPassword)) {
+                        Customer.customer_Id = rs.getInt("customer_id");
                         System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
                         CarVerse.customerMenu();
                     } else {
@@ -301,6 +303,7 @@ class Customer{
 
                     String dbPassword = rs.getString("password");
                     if (password.equals(dbPassword)) {
+                        Customer.customer_Id = rs.getInt("customer_id");
                         System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
                         CarVerse.customerMenu();
                     } else {
@@ -315,7 +318,7 @@ class Customer{
         }
     }
 
-    void bookCar(int customerId) throws SQLException {
+    void bookCar() throws SQLException {
         Connection conn = DBConnect.getConnection();
         System.out.print("Enter Car ID to book: ");
         int carId = sc.nextInt();
@@ -352,28 +355,28 @@ class Customer{
         try {
             LocalDateTime startDateTime = LocalDateTime.parse(startInput, formatter);
             LocalDateTime endDateTime = LocalDateTime.parse(endInput, formatter);
-            LocalDateTime actualReturnTime  = LocalDateTime.now();
+            LocalDateTime now  = LocalDateTime.now();
 
             if (endDateTime.isBefore(startDateTime)) {
                 System.out.println("❌ End time must be after start time.");
                 return;
             }
 
-            if (startDateTime.isBefore(actualReturnTime)) {
+            if (startDateTime.isBefore(now)) {
                 System.out.println("❌ Cannot book a car in the past. Please enter future time.");
                 return;
             }
             double lateFeePerHour = 250.0;
 
             // 3. Cost calculation
-            Map<String, Double> costData = Rental.costCalculator(startDateTime, endDateTime, actualReturnTime, pricePerHour,lateFeePerHour);
-            double hours = costData.get("hours");
+            Map<String, Double> costData = Rental.costCalculator(startDateTime, endDateTime, endDateTime, pricePerHour,lateFeePerHour);
+            double hours = costData.get("totalHours");
             double totalCost = costData.get("totalCost");
 
             // 4. Insert into bookings table
             String insertBooking = "INSERT INTO bookings (customer_id, car_id, start_location, end_location, start_datetime, end_datetime, total_hours, total_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement psInsert = conn.prepareStatement(insertBooking);
-            psInsert.setInt(1, customerId);
+            psInsert.setInt(1, customer_Id);
             psInsert.setInt(2, carId);
             psInsert.setString(3, startLoc);
             psInsert.setString(4, endLoc);
@@ -404,7 +407,7 @@ class Customer{
     }
 
 
-    void viewMyBookings(int customerId)throws SQLException
+    void viewMyBookings()throws SQLException
     {
         Connection conn = DBConnect.getConnection();
 
@@ -420,7 +423,7 @@ class Customer{
         """;
 
         PreparedStatement ps = conn.prepareStatement(query);
-        ps.setInt(1, customerId);
+        ps.setInt(1, customer_Id);
         ResultSet rs = ps.executeQuery();
 
         System.out.println("\n===============================");
@@ -457,7 +460,7 @@ class Customer{
 
     void cancelBooking()
     {
-
+        
     }
 
     public void giveRating() throws SQLException {
@@ -847,7 +850,9 @@ class Rental{
         Map<String, Double> result = new HashMap<>();
 
         long totalHours = Duration.between(start, actualReturn).toHours();
-        if (totalHours <= 0) totalHours = 1;
+        if (Duration.between(start, actualReturn).toMinutes() % 60 != 0) {
+            totalHours += 1; // Round up partial hour
+        }
 
         long lateHours = Duration.between(expectedEnd, actualReturn).toHours();
         lateHours = Math.max(lateHours, 0); // no negative late hours
