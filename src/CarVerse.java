@@ -99,8 +99,9 @@ public class CarVerse {
             System.out.println("2. Book a Car");
             System.out.println("3. View My Bookings");
             System.out.println("4. Cancel Booking");
-            System.out.println("5. Rate a Car");
-            System.out.println("6. Logout");
+            System.out.println("5. Return Car");
+            System.out.println("6. Rate a Car");
+            System.out.println("7. Logout");
             System.out.print("Enter choice: ");
             choice = sc.nextInt();
             sc.nextLine();
@@ -121,15 +122,18 @@ public class CarVerse {
                     customer.cancelBooking();
                     break;
                 case 5:
-                    customer.giveRating();
+                    customer.returnCar();
                     break;
                 case 6:
+                    customer.giveRating();
+                    break;
+                case 7:
                     System.out.println("Logged out.");
                     break;
                 default:
                     System.out.println("Invalid choice.");
             }
-        } while (choice != 6);
+        } while (choice != 7);
     }
 }
 
@@ -376,6 +380,12 @@ class Customer{
                             System.out.println("❌ Cannot book a car in the past. Please enter future time.");
                             return;
                         }
+
+                        if (Duration.between(startDateTime, endDateTime).toHours() == 0) {
+                            System.out.println("❌ Booking duration must be at least 1 hour.");
+                            return;
+                        }
+
                         double lateFeePerHour = 250.0;
 
                         // 3. Cost calculation
@@ -534,9 +544,9 @@ class Customer{
             }
 
             // 4. Delete the booking record
-            String deleteBookingSql = "DELETE FROM bookings WHERE booking_id = ?";
+            String cancelSql = "UPDATE bookings SET status = 'Cancelled' WHERE booking_id = ?";
 
-            try (PreparedStatement psDelete = conn.prepareStatement(deleteBookingSql)) {
+            try (PreparedStatement psDelete = conn.prepareStatement(cancelSql)) {
                 psDelete.setInt(1, bookingIdToCancel);
                 int rowsDeleted = psDelete.executeUpdate();
                 if (rowsDeleted == 0) {
@@ -606,7 +616,169 @@ class Customer{
             System.out.println("❌ Error while submitting rating: " + e.getMessage());
         }
     }
+    public void returnCar() {
+        try (Connection conn = DBConnect.getConnection()) {
+            // 1. Show active bookings
+            String query = "SELECT * FROM bookings WHERE customer_id = ? AND status = 'Booked'";
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                ps.setInt(1, customer_Id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    System.out.println("\n=== Your Active Bookings ===");
+                    System.out.printf("%-10s %-10s %-20s %-20s\n", "BookingID", "CarID", "Start Time", "End Time");
+                    boolean found = false;
+                    while (rs.next()) {
+                        found = true;
+                        int bid = rs.getInt("booking_id");
+                        int carId = rs.getInt("car_id");
+                        Timestamp start = rs.getTimestamp("start_datetime");
+                        Timestamp end = rs.getTimestamp("end_datetime");
+                        System.out.printf("%-10d %-10d %-20s %-20s\n", bid, carId, start, end);
+                    }
+                    if (!found) {
+                        System.out.println("❌ No active bookings to return.");
+                        return;
+                    }
+                }
+            }
 
+            // 2. Choose booking
+            System.out.print("\nEnter Booking ID to return car: ");
+            int bookingId = sc.nextInt();
+
+            String getBooking = "SELECT * FROM bookings WHERE booking_id = ? AND customer_id = ? AND status = 'Booked'";
+            try (PreparedStatement ps = conn.prepareStatement(getBooking)) {
+                ps.setInt(1, bookingId);
+                ps.setInt(2, customer_Id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        System.out.println("❌ Invalid booking ID or already returned.");
+                        return;
+                    }
+
+                    // 3. Extract data
+                    int carId = rs.getInt("car_id");
+                    Timestamp startTS = rs.getTimestamp("start_datetime");
+                    Timestamp expectedEndTS = rs.getTimestamp("end_datetime");
+                    double pricePerHour = rs.getDouble("total_cost") / rs.getDouble("total_hours");
+
+                    LocalDateTime start = startTS.toLocalDateTime();
+                    LocalDateTime expectedEnd = expectedEndTS.toLocalDateTime();
+                    LocalDateTime now = LocalDateTime.now();
+
+                    // 4. Cost calculation
+                    double lateFeePerHour = 250;
+                    Map<String, Double> cost = Rental.costCalculator(start, expectedEnd, now, pricePerHour, lateFeePerHour);
+                    double totalCost = cost.get("totalCost");
+                    double rentalHours = cost.get("totalHours");
+                    double lateHours = cost.get("lateHours");
+                    double lateFee = cost.get("lateFee");
+
+                    // 5. Simulate payment
+                    System.out.printf("\n💳 Final Amount to Pay: ₹%.2f\n", totalCost);
+                    System.out.print("Proceed with payment? (yes/no): ");
+                    sc.nextLine(); // consume newline
+                    String confirm = sc.nextLine().trim().toLowerCase();
+
+                    if (!confirm.equals("yes")) {
+                        System.out.println("❌ Payment cancelled. Car not returned.");
+                        return;
+                    }
+
+                    // ---- Payment Process ----
+                    System.out.print("Select payment method (Cash / UPI / Card): ");
+                    String paymentMethod = sc.nextLine().trim();
+
+                    // Insert into payment table
+                    String insertPayment = "INSERT INTO payment (booking_id, customer_id, amount, payment_method) VALUES (?, ?, ?, ?)";
+                    try (PreparedStatement psPayment = conn.prepareStatement(insertPayment)) {
+                        psPayment.setInt(1, bookingId);
+                        psPayment.setInt(2, customer_Id);
+                        psPayment.setDouble(3, totalCost);
+                        psPayment.setString(4, paymentMethod);
+                        int rows = psPayment.executeUpdate();
+
+                        if (rows > 0) {
+                            System.out.println("✅ Payment recorded successfully.");
+                        } else {
+                            System.out.println("❌ Payment failed. Car return aborted.");
+                            return; // EXIT here if payment fails
+                        }
+                    }
+
+                    // 6. Get car details for the bill
+                    String getCarDetails = "SELECT model, brand, type, seats FROM car WHERE car_id = ?";
+                    String model = "", brand = "", type = "";
+                    int seats = 0;
+
+                    try (PreparedStatement psCarDetails = conn.prepareStatement(getCarDetails)) {
+                        psCarDetails.setInt(1, carId);
+                        try (ResultSet rsCar = psCarDetails.executeQuery()) {
+                            if (rsCar.next()) {
+                                model = rsCar.getString("model");
+                                brand = rsCar.getString("brand");
+                                type = rsCar.getString("type");
+                                seats = rsCar.getInt("seats");
+                            }
+                        }
+                    }
+
+                    // 7. Update booking status
+                    String updateBooking = "UPDATE bookings SET status = 'Returned', end_datetime = ?, total_hours = ?, total_cost = ? WHERE booking_id = ?";
+                    try (PreparedStatement psUpdate = conn.prepareStatement(updateBooking)) {
+                        psUpdate.setTimestamp(1, Timestamp.valueOf(now));
+                        psUpdate.setDouble(2, rentalHours);
+                        psUpdate.setDouble(3, totalCost);
+                        psUpdate.setInt(4, bookingId);
+                        psUpdate.executeUpdate();
+                    }
+
+                    // 8. Update car availability
+                    try (PreparedStatement psCar = conn.prepareStatement("UPDATE car SET availability = 1 WHERE car_id = ?")) {
+                        psCar.setInt(1, carId);
+                        psCar.executeUpdate();
+                    }
+
+                    // 9. Insert into rental table
+                    String insertRental = "INSERT INTO rental (car_id, customer_id, rent_date, due_date, return_date, total_price) VALUES (?, ?, ?, ?, ?, ?)";
+                    try (PreparedStatement psRental = conn.prepareStatement(insertRental)) {
+                        psRental.setInt(1, carId);
+                        psRental.setInt(2, customer_Id);
+                        psRental.setDate(3, Date.valueOf(start.toLocalDate()));
+                        psRental.setDate(4, Date.valueOf(expectedEnd.toLocalDate()));
+                        psRental.setDate(5, Date.valueOf(now.toLocalDate()));
+                        psRental.setDouble(6, totalCost);
+                        psRental.executeUpdate();
+                    }
+
+                    // 10. Print Final Real-Time Bill
+                    System.out.println("\n========== 🧾 RENTAL BILL ==========");
+                    System.out.printf("📄 Booking ID     : %d\n", bookingId);
+                    System.out.printf("🚗 Car ID         : %d\n", carId);
+                    System.out.printf("🔤 Model          : %s\n", model);
+                    System.out.printf("🏷️ Brand          : %s\n", brand);
+                    System.out.printf("🚘 Type           : %s\n", type);
+                    System.out.printf("🪑 Seats          : %d\n", seats);
+                    System.out.println("-----------------------------------");
+                    System.out.printf("📍 Start Time     : %s\n", start.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                    System.out.printf("📍 Expected Return: %s\n", expectedEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                    System.out.printf("📍 Actual Return  : %s\n", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                    System.out.println("-----------------------------------");
+                    System.out.printf("⏱ Total Hours     : %.1f hrs\n", rentalHours);
+                    System.out.printf("💰 Base Price      : ₹%.2f\n", pricePerHour * rentalHours);
+                    System.out.printf("⏰ Late Hours      : %.1f hrs\n", lateHours);
+                    System.out.printf("🔻 Late Fee        : ₹%.2f\n", lateFee);
+                    System.out.println("-----------------------------------");
+                    System.out.printf("💳 Total Paid      : ₹%.2f\n", totalCost);
+                    System.out.printf("💳 Payment Method  : %s\n", paymentMethod);
+                    System.out.println("✅ Thank you for choosing CarVerse!");
+                    System.out.println("=====================================\n");
+
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("❌ Error during return process: " + e.getMessage());
+        }
+    }
 }
 class Admin{
     Scanner sc=new Scanner(System.in);
@@ -1004,23 +1176,38 @@ class Admin{
 }
 
 class Rental {
-    public static Map<String, Double> costCalculator(LocalDateTime start, LocalDateTime expectedEnd, LocalDateTime actualReturn,
-                                                     double pricePerHour, double lateFeePerHour) {
+    public static Map<String, Double> costCalculator(
+            LocalDateTime start,
+            LocalDateTime expectedEnd,
+            LocalDateTime actualReturn,
+            double pricePerHour,
+            double lateFeePerHour) {
+
         Map<String, Double> result = new HashMap<>();
+
+        // Make sure we always calculate in the correct order
         long totalHours = Duration.between(start, actualReturn).toHours();
-        if (Duration.between(start, actualReturn).toMinutes() % 60 != 0) {
-            totalHours += 1; // Round up partial hour
+        if (totalHours < 0) {
+            totalHours = Duration.between(actualReturn, start).toHours(); // swap if needed
         }
+
+        if (Duration.between(start, actualReturn).toMinutes() % 60 != 0) {
+            totalHours += 1; // round up partial hour
+        }
+
         long lateHours = Duration.between(expectedEnd, actualReturn).toHours();
         lateHours = Math.max(lateHours, 0);
+
         double rentalCost = totalHours * pricePerHour;
         double lateFee = lateHours * lateFeePerHour;
         double totalCost = rentalCost + lateFee;
+
         result.put("totalHours", (double) totalHours);
         result.put("lateHours", (double) lateHours);
         result.put("rentalCost", rentalCost);
         result.put("lateFee", lateFee);
         result.put("totalCost", totalCost);
+
         return result;
     }
 }
