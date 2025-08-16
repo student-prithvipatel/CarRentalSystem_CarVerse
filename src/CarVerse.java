@@ -1,3 +1,4 @@
+import java.io.*;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -5,6 +6,10 @@ import java.util.Scanner;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.*;
+import jakarta.mail.*;
+import jakarta.mail.internet.*;
+import jakarta.activation.*;
+import java.util.Properties;
 
 public class CarVerse {
     static Scanner sc=new Scanner(System.in);
@@ -751,32 +756,128 @@ class Customer{
                     }
 
                     // 10. Print Final Real-Time Bill
-                    System.out.println("\n========== 🧾 RENTAL BILL ==========");
-                    System.out.printf("📄 Booking ID     : %d\n", bookingId);
-                    System.out.printf("🚗 Car ID         : %d\n", carId);
-                    System.out.printf("🔤 Model          : %s\n", model);
-                    System.out.printf("🏷️ Brand          : %s\n", brand);
-                    System.out.printf("🚘 Type           : %s\n", type);
-                    System.out.printf("🪑 Seats          : %d\n", seats);
-                    System.out.println("-----------------------------------");
-                    System.out.printf("📍 Start Time     : %s\n", start.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-                    System.out.printf("📍 Expected Return: %s\n", expectedEnd.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-                    System.out.printf("📍 Actual Return  : %s\n", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-                    System.out.println("-----------------------------------");
-                    System.out.printf("⏱ Total Hours     : %.1f hrs\n", rentalHours);
-                    System.out.printf("💰 Base Price      : ₹%.2f\n", pricePerHour * rentalHours);
-                    System.out.printf("⏰ Late Hours      : %.1f hrs\n", lateHours);
-                    System.out.printf("🔻 Late Fee        : ₹%.2f\n", lateFee);
-                    System.out.println("-----------------------------------");
-                    System.out.printf("💳 Total Paid      : ₹%.2f\n", totalCost);
-                    System.out.printf("💳 Payment Method  : %s\n", paymentMethod);
-                    System.out.println("✅ Thank you for choosing CarVerse!");
-                    System.out.println("=====================================\n");
+                    String billFilePath = billing(bookingId, carId, model, brand, type, seats, start, expectedEnd, now, rentalHours, pricePerHour, lateHours, lateFee, totalCost, paymentMethod);
+
+                    System.out.print("Enter customer's email to send bill: ");
+                    String toEmail = sc.nextLine().trim();
+                    if (!toEmail.matches("^[\\w._%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")) {
+                        System.out.println("❌ Invalid email: " + toEmail);
+                        System.out.println("Sorry we can't shere Bill");
+                        return;
+                    }
+
+                    sendBillEmail(toEmail, billFilePath);
+
 
                 }
             }
         } catch (Exception e) {
             System.out.println("❌ Error during return process: " + e.getMessage());
+        }
+    }
+    String billing(
+            int bookingId, int carId, String model, String brand, String type, int seats,
+            LocalDateTime start, LocalDateTime expectedEnd, LocalDateTime now,
+            double rentalHours, double pricePerHour, double lateHours, double lateFee,
+            double totalCost, String paymentMethod) {
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        String bill =
+                "\n========== 🧾 RENTAL BILL ==========\n" +
+                        String.format("📄 Booking ID     : %d\n", bookingId) +
+                        String.format("🚗 Car ID         : %d\n", carId) +
+                        String.format("🔤 Model          : %s\n", model) +
+                        String.format("🏷️ Brand          : %s\n", brand) +
+                        String.format("🚘 Type           : %s\n", type) +
+                        String.format("🪑 Seats          : %d\n", seats) +
+                        "-----------------------------------\n" +
+                        String.format("📍 Start Time     : %s\n", start.format(fmt)) +
+                        String.format("📍 Expected Return: %s\n", expectedEnd.format(fmt)) +
+                        String.format("📍 Actual Return  : %s\n", now.format(fmt)) +
+                        "-----------------------------------\n" +
+                        String.format("⏱ Total Hours     : %.1f hrs\n", rentalHours) +
+                        String.format("💰 Base Price      : ₹%.2f\n", pricePerHour * rentalHours) +
+                        String.format("⏰ Late Hours      : %.1f hrs\n", lateHours) +
+                        String.format("🔻 Late Fee        : ₹%.2f\n", lateFee) +
+                        "-----------------------------------\n" +
+                        String.format("💳 Total Paid      : ₹%.2f\n", totalCost) +
+                        String.format("💳 Payment Method  : %s\n", paymentMethod) +
+                        "✅ Thank you for choosing CarVerse!\n" +
+                        "=====================================\n";
+
+        // 1) Print to console
+        System.out.println(bill);
+
+        // 2) Append to a master log file
+        try (FileWriter fw = new FileWriter("RentalBills.txt", true)) {
+            fw.write(bill);
+        } catch (IOException e) {
+            System.out.println("❌ Error saving master bill log: " + e.getMessage());
+        }
+
+        // 3) Save this bill as its own file and RETURN the path (e.g., Bill_123.txt)
+        String singleBillPath = "Bill_" + bookingId + ".txt";
+        try (FileWriter fw = new FileWriter(singleBillPath)) {
+            fw.write(bill);
+        } catch (IOException e) {
+            System.out.println("❌ Error saving single bill file: " + e.getMessage());
+        }
+
+        return singleBillPath;
+    }
+    public void sendBillEmail(String toEmail, String billFilePath) {
+        final String fromEmail = "prithvitpatel@gmail.com";   // TODO: put your Gmail here
+        final String password  = "zsfm thja pida jfia";  // TODO: paste app password here
+
+        // quick check
+        File f = new File(billFilePath);
+        if (!f.exists()) {
+            System.out.println("❌ Bill file not found: " + billFilePath);
+            return;
+        }
+
+        Properties props = new Properties();
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true"); // TLS
+
+        Session session = Session.getInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(fromEmail, password);
+            }
+        });
+
+        try {
+            Message message = new MimeMessage(session);
+            // Optional: show a readable sender name
+            message.setFrom(new InternetAddress(fromEmail, "CarVerse Billing"));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));
+            message.setSubject("Your Car Rental Bill");
+
+            // Body text (UTF-8 so ₹ etc. are fine)
+            MimeBodyPart textPart = new MimeBodyPart();
+            textPart.setText("Dear Customer,\n\nPlease find your rental bill attached.\n\nRegards,\nCarVerse", "UTF-8");
+
+            // Attachment
+            MimeBodyPart attachmentPart = new MimeBodyPart();
+            DataSource source = new FileDataSource(billFilePath);
+            attachmentPart.setDataHandler(new DataHandler(source));
+            attachmentPart.setFileName("RentalBill.txt");
+
+            Multipart multipart = new MimeMultipart();
+            multipart.addBodyPart(textPart);
+            multipart.addBodyPart(attachmentPart);
+
+            message.setContent(multipart);
+
+            Transport.send(message);
+            System.out.println("✅ Email sent to " + toEmail);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("❌ Failed to send email: " + e.getMessage());
         }
     }
 }
