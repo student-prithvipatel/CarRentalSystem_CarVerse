@@ -1,3 +1,4 @@
+import java.io.*;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -7,9 +8,9 @@ import java.time.format.DateTimeParseException;
 import java.time.*;
 
 public class CarVerse {
-    static Scanner sc=new Scanner(System.in);
-    static Admin admin=new Admin();
-    static Customer customer=new Customer();
+    static Scanner sc = new Scanner(System.in);
+    static Admin admin = new Admin();
+    static Customer customer = new Customer();
 
     public static void main(String[] args) throws SQLException {
         int choice;
@@ -19,9 +20,9 @@ public class CarVerse {
             System.out.println("3. User registration");
             System.out.println("4. Exit");
             System.out.println("Enter choice from 1 to 4");
-            choice= sc.nextInt();
+            choice = sc.nextInt();
             sc.nextLine();
-            switch (choice){
+            switch (choice) {
                 case 1:
                     admin.adminLogin();
                     break;
@@ -32,14 +33,15 @@ public class CarVerse {
                     customer.customerRegistartion();
                     break;
                 case 4:
+                    customer.exportAllBillsWithLinkedList();
                     System.out.println("Good Bye>>>");
             }
-        }while (choice!=4);
+        } while (choice != 4);
     }
 
-    static void adminMenu()throws SQLException{
+    static void adminMenu() throws SQLException {
         int choice;
-        do{
+        do {
             System.out.println("\n=== Admin Menu ===");
             System.out.println("1. Add Car");
             System.out.println("2. View All Cars");
@@ -55,40 +57,40 @@ public class CarVerse {
             choice = sc.nextInt();
             sc.nextLine();
             switch (choice) {
-                case 1 :
+                case 1:
                     admin.addCar();
-                break;
-                case 2 :
+                    break;
+                case 2:
                     admin.viewAllCars();
                     break;
-                case 3 :
+                case 3:
                     admin.updateCarDetails();
                     break;
-                case 4 :
+                case 4:
                     admin.viewAvailableCars();
                     break;
-                case 5 :
+                case 5:
                     admin.updateCarAvailability();
                     break;
-                case 6 :
+                case 6:
                     admin.viewCurrentlyRentedCars();
                     break;
-                case 7 :
+                case 7:
                     admin.viewOverdueRentals();
                     break;
-                case 8 :
+                case 8:
                     admin.generateReports();
                     break;
-                case 9 :
+                case 9:
                     admin.removeCar();
                     break;
-                case 10 :
+                case 10:
                     System.out.println("Admin logged out.");
                     break;
-                default :
+                default:
                     System.out.println("Invalid choice.");
             }
-        }while (choice!=10);
+        } while (choice != 10);
     }
 
     static void customerMenu() throws SQLException {
@@ -147,7 +149,7 @@ class DBConnect {
     }
 }
 
-class Car{
+class Car {
     int car_id;
     String model;
     String brand;
@@ -156,8 +158,8 @@ class Car{
     boolean availability;
     int seats;
 
-    public Car(int car_id, String model, String brand,String type, double pricePerHour, boolean availability,int seats) {
-        this.car_id= car_id;
+    public Car(int car_id, String model, String brand, String type, double pricePerHour, boolean availability, int seats) {
+        this.car_id = car_id;
         this.model = model;
         this.brand = brand;
         this.type = type;
@@ -167,7 +169,7 @@ class Car{
     }
 }
 
-class Customer{
+class Customer {
     Scanner sc = new Scanner(System.in);
     static int customer_Id;
 
@@ -235,8 +237,7 @@ class Customer{
                     System.out.println("❌ Invalid date format. Please use dd-MM-yyyy.");
                 }
             }
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO customer(name, email, phone_no, address, dob, password) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO customer(name, email, phone_no, address, dob, password) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
                 ps.setString(1, name);
                 ps.setString(2, email);
                 ps.setString(3, phone);
@@ -254,10 +255,11 @@ class Customer{
                     }
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+
     public void customerLogin() throws SQLException {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.println("===== Customer Login =====");
@@ -329,10 +331,11 @@ class Customer{
                 default:
                     System.out.println("❌ Invalid choice. Please select 1 or 2.");
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+
     void bookCar() throws SQLException {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter Car ID to book: ");
@@ -424,14 +427,13 @@ class Customer{
                     }
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
 
-    void viewMyBookings()throws SQLException
-    {
-        try(Connection conn = DBConnect.getConnection()) {
+    void viewMyBookings() throws SQLException {
+        try (Connection conn = DBConnect.getConnection()) {
 
             String query = """
                     SELECT b.booking_id, c.model, c.brand, c.type,
@@ -444,15 +446,14 @@ class Customer{
                     ORDER BY b.start_datetime DESC
                     """;
 
-            try(PreparedStatement ps = conn.prepareStatement(query)) {
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
                 ps.setInt(1, customer_Id);
-                try(ResultSet rs = ps.executeQuery()) {
+                try (ResultSet rs = ps.executeQuery()) {
 
                     System.out.println("\n===============================");
                     System.out.println("📋 Your Bookings");
                     System.out.println("===============================");
-                    System.out.printf("%-6s %-10s %-10s %-10s %-12s %-12s %-16s %-16s %-7s %-10s %-10s\n",
-                            "BID", "Model", "Brand", "Type", "From", "To", "Start Date", "End Date", "Hours", "Cost", "Status");
+                    System.out.printf("%-6s %-10s %-10s %-10s %-12s %-12s %-16s %-16s %-7s %-10s %-10s\n", "BID", "Model", "Brand", "Type", "From", "To", "Start Date", "End Date", "Hours", "Cost", "Status");
                     System.out.println("---------------------------------------------------------------------------------------------------------------");
 
                     boolean hasBookings = false;
@@ -471,8 +472,7 @@ class Customer{
                         double cost = rs.getDouble("total_cost");
                         String status = rs.getString("status");
 
-                        System.out.printf("%-6d %-10s %-10s %-10s %-12s %-12s %-16s %-16s %-7.1f ₹%-9.2f %-10s\n",
-                                bid, model, brand, type, startLoc, endLoc, startDT.toLocalDateTime(), endDT.toLocalDateTime(), hours, cost, status);
+                        System.out.printf("%-6d %-10s %-10s %-10s %-12s %-12s %-16s %-16s %-7.1f ₹%-9.2f %-10s\n", bid, model, brand, type, startLoc, endLoc, startDT.toLocalDateTime(), endDT.toLocalDateTime(), hours, cost, status);
                     }
 
                     if (!hasBookings) {
@@ -480,17 +480,15 @@ class Customer{
                     }
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
 
-    void cancelBooking()
-    {
+    void cancelBooking() {
         try (Connection conn = DBConnect.getConnection()) {
             // 1. List active bookings for this customer
-            String listBookingsSql =
-                    "SELECT booking_id, car_id, start_datetime, end_datetime FROM bookings WHERE customer_id = ?";
+            String listBookingsSql = "SELECT booking_id, car_id, start_datetime, end_datetime FROM bookings WHERE customer_id = ?";
 
             try (PreparedStatement psList = conn.prepareStatement(listBookingsSql)) {
                 psList.setInt(1, customer_Id);
@@ -505,8 +503,7 @@ class Customer{
                         Timestamp start = rs.getTimestamp("start_datetime");
                         Timestamp end = rs.getTimestamp("end_datetime");
 
-                        System.out.printf("%-10d %-10d %-20s %-20s\n",
-                                bookingId, carId, start.toString(), end.toString());
+                        System.out.printf("%-10d %-10d %-20s %-20s\n", bookingId, carId, start.toString(), end.toString());
                     }
 
                     if (!hasBookings) {
@@ -616,6 +613,7 @@ class Customer{
             System.out.println("❌ Error while submitting rating: " + e.getMessage());
         }
     }
+
     public void returnCar() {
         try (Connection conn = DBConnect.getConnection()) {
             // 1. Show active bookings
@@ -640,7 +638,6 @@ class Customer{
                     }
                 }
             }
-
             // 2. Choose booking
             System.out.print("\nEnter Booking ID to return car: ");
             int bookingId = sc.nextInt();
@@ -688,20 +685,26 @@ class Customer{
                     System.out.print("Select payment method (Cash / UPI / Card): ");
                     String paymentMethod = sc.nextLine().trim();
 
-                    // Insert into payment table
+                    // Insert into payment table & retrieve generated paymentId
                     String insertPayment = "INSERT INTO payment (booking_id, customer_id, amount, payment_method) VALUES (?, ?, ?, ?)";
-                    try (PreparedStatement psPayment = conn.prepareStatement(insertPayment)) {
+                    int paymentId = -1;
+                    try (PreparedStatement psPayment = conn.prepareStatement(insertPayment, Statement.RETURN_GENERATED_KEYS)) {
                         psPayment.setInt(1, bookingId);
                         psPayment.setInt(2, customer_Id);
                         psPayment.setDouble(3, totalCost);
                         psPayment.setString(4, paymentMethod);
                         int rows = psPayment.executeUpdate();
-
                         if (rows > 0) {
+                            ResultSet keys = psPayment.getGeneratedKeys();
+                            if (keys.next()) paymentId = keys.getInt(1);
                             System.out.println("✅ Payment recorded successfully.");
+
+                            // >>>>>> BILLING INTEGRATION <<<<<<
+                            double baseAmount = pricePerHour * rentalHours;
+                            Billing.generateBill(conn, bookingId, customer_Id, baseAmount, lateFee, totalCost, paymentId);
                         } else {
                             System.out.println("❌ Payment failed. Car return aborted.");
-                            return; // EXIT here if payment fails
+                            return;
                         }
                     }
 
@@ -709,7 +712,6 @@ class Customer{
                     String getCarDetails = "SELECT model, brand, type, seats FROM car WHERE car_id = ?";
                     String model = "", brand = "", type = "";
                     int seats = 0;
-
                     try (PreparedStatement psCarDetails = conn.prepareStatement(getCarDetails)) {
                         psCarDetails.setInt(1, carId);
                         try (ResultSet rsCar = psCarDetails.executeQuery()) {
@@ -737,7 +739,6 @@ class Customer{
                         psCar.setInt(1, carId);
                         psCar.executeUpdate();
                     }
-
                     // 9. Insert into rental table
                     String insertRental = "INSERT INTO rental (car_id, customer_id, rent_date, due_date, return_date, total_price) VALUES (?, ?, ?, ?, ?, ?)";
                     try (PreparedStatement psRental = conn.prepareStatement(insertRental)) {
@@ -779,11 +780,66 @@ class Customer{
             System.out.println("❌ Error during return process: " + e.getMessage());
         }
     }
+
+    void exportAllBillsWithLinkedList() {
+        Bill head = null, tail = null;
+        try {
+            Connection conn = DBConnect.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM billing");
+
+            while (rs.next()) {
+                Bill bill = new Bill(rs.getInt("bill_id"), rs.getInt("booking_id"), rs.getInt("customer_id"), rs.getString("generated_date"), rs.getDouble("base_amount"), rs.getDouble("late_fee"), rs.getDouble("total_amount"), rs.getInt("payment_id"));
+                if (head == null) {
+                    head = tail = bill;
+                } else {
+                    tail.next = bill;
+                    tail = bill;
+                }
+            }
+            rs.close();
+            stmt.close();
+            conn.close();
+
+            FileOutputStream fos = new FileOutputStream("all_bills.txt");
+            OutputStreamWriter osw = new OutputStreamWriter(fos);
+
+            Bill curr = head;
+            int count = 1;
+            while (curr != null) {
+                osw.write("============================================\n");
+                osw.write(String.format("                  BILL #%d\n", count));
+                osw.write("============================================\n");
+                osw.write(String.format("Bill ID -------: %d\n", curr.billId));
+                osw.write(String.format("Booking ID ----: %d\n", curr.bookingId));
+                osw.write(String.format("Customer ID ---: %d\n", curr.customerId));
+                osw.write(String.format("Generated Date : %s\n", curr.generatedDate));
+                osw.write("--------------------------------------------\n");
+                osw.write(String.format("Base Amount ---: ₹%.2f\n", curr.baseAmount));
+                osw.write(String.format("Late Fee ------: ₹%.2f\n", curr.lateFee));
+                osw.write(String.format("Total Amount --: ₹%.2f\n", curr.totalAmount));
+                osw.write(String.format("Payment ID ----: %d\n", curr.paymentId));
+                osw.write("============================================\n\n");
+                curr = curr.next;
+                count++;
+            }
+
+            osw.flush();
+            osw.close();
+            fos.close();
+
+            System.out.println("✅ All bills exported to all_bills.txt in a beautiful format using LinkedList.");
+        } catch (Exception e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
+    }
 }
-class Admin{
-    Scanner sc=new Scanner(System.in);
+
+class Admin {
+    Scanner sc = new Scanner(System.in);
     HashMap<Integer, Car> carMap = new HashMap<>();
-    void adminLogin()throws SQLException{
+
+    void adminLogin() throws SQLException {
         try (Connection conn = DBConnect.getConnection()) {
             String query = "SELECT * FROM admin WHERE adminname = ? AND password = ?";
             try (PreparedStatement pst = conn.prepareStatement(query)) {
@@ -801,11 +857,12 @@ class Admin{
                     }
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
-    void addCar()throws SQLException{
+
+    void addCar() throws SQLException {
         try (Connection conn = DBConnect.getConnection()) {
             String sql = "INSERT INTO car (model, brand, type, price_per_hour, seats, availability) VALUES (?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pst = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -841,11 +898,12 @@ class Admin{
                     System.out.println("❌ Failed to add car.");
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
-    void viewAllCars() throws SQLException{
+
+    void viewAllCars() throws SQLException {
         try (Connection conn = DBConnect.getConnection()) {
             String query = "SELECT * FROM car";
             try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
@@ -865,14 +923,14 @@ class Admin{
                     boolean available = rs.getBoolean("availability");
                     String status = available ? "Available" : "Booked";
                     double avgRating = getAverageRating(conn, id);
-                    System.out.printf("%-5d %-12s %-10s %-10s %-6d ₹%-13.2f %-12s ⭐%.1f\n",
-                            id, model, brand, type, seats, price, status, avgRating);
+                    System.out.printf("%-5d %-12s %-10s %-10s %-6d ₹%-13.2f %-12s ⭐%.1f\n", id, model, brand, type, seats, price, status, avgRating);
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+
     void updateCarDetails() throws SQLException {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter Car ID to update: ");
@@ -906,18 +964,15 @@ class Admin{
             String newValue = sc.nextLine();
             String query = "UPDATE car SET " + column + " = ? WHERE car_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(query)) {
-                if (column.equals("price_per_hour"))
-                    ps.setDouble(1, Double.parseDouble(newValue));
-                else if (column.equals("availability"))
-                    ps.setBoolean(1, Boolean.parseBoolean(newValue));
-                else
-                    ps.setString(1, newValue);
+                if (column.equals("price_per_hour")) ps.setDouble(1, Double.parseDouble(newValue));
+                else if (column.equals("availability")) ps.setBoolean(1, Boolean.parseBoolean(newValue));
+                else ps.setString(1, newValue);
                 ps.setInt(2, carId);
 
                 int r = ps.executeUpdate();
                 System.out.println(r > 0 ? "Car updated successfully." : "Car update failed.");
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
@@ -941,15 +996,14 @@ class Admin{
                     int seats = rs.getInt("seats");
                     double price = rs.getDouble("price_per_hour");
                     double avgRating = getAverageRating(conn, id);
-                    System.out.printf("%-5d %-12s %-10s %-10s %-6d ₹%-13.2f ⭐%.1f\n",
-                            id, model, brand, type, seats, price, avgRating);
+                    System.out.printf("%-5d %-12s %-10s %-10s %-6d ₹%-13.2f ⭐%.1f\n", id, model, brand, type, seats, price, avgRating);
                 }
 
                 if (!hasCars) {
                     System.out.println("❌ No cars are currently available.");
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Error displaying available cars: " + e.getMessage());
         }
     }
@@ -1014,19 +1068,13 @@ class Admin{
         // The following query and schema must match your actual DB!
         // Adjust JOIN and table/column names as per your DB if needed.
         try (Connection conn = DBConnect.getConnection()) {
-            String query =
-                    "SELECT r.rental_id, c.car_id, c.model, c.brand, c.type, c.seats, c.price_per_hour, cu.name AS customer_name, cu.phone_no, r.rent_date " +
-                            "FROM rental r " +
-                            "JOIN car c ON r.car_id = c.car_id " +
-                            "JOIN customer cu ON r.customer_id = cu.customer_id " +
-                            "WHERE r.return_date IS NULL";
+            String query = "SELECT r.rental_id, c.car_id, c.model, c.brand, c.type, c.seats, c.price_per_hour, cu.name AS customer_name, cu.phone_no, r.rent_date " + "FROM rental r " + "JOIN car c ON r.car_id = c.car_id " + "JOIN customer cu ON r.customer_id = cu.customer_id " + "WHERE r.return_date IS NULL";
 
             try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
                 System.out.println("\n==============================");
                 System.out.println("🚘 Currently Rented Cars");
                 System.out.println("==============================");
-                System.out.printf("%-5s %-5s %-12s %-10s %-10s %-5s %-12s %-18s %-12s %-12s\n",
-                        "RId", "CID", "Model", "Brand", "Type", "Seat", "Price/Hour", "Customer Name", "Phone", "Rent Date");
+                System.out.printf("%-5s %-5s %-12s %-10s %-10s %-5s %-12s %-18s %-12s %-12s\n", "RId", "CID", "Model", "Brand", "Type", "Seat", "Price/Hour", "Customer Name", "Phone", "Rent Date");
                 boolean hasResults = false;
                 while (rs.next()) {
                     hasResults = true;
@@ -1041,14 +1089,13 @@ class Admin{
                     String phone = rs.getString("phone_no");
                     Date rentDate = rs.getDate("rent_date");
 
-                    System.out.printf("%-5d %-5d %-12s %-10s %-10s %-5d ₹%-11.2f %-18s %-12s %-12s\n",
-                            rentalId, carId, model, brand, type, seats, price, customerName, phone, rentDate);
+                    System.out.printf("%-5d %-5d %-12s %-10s %-10s %-5d ₹%-11.2f %-18s %-12s %-12s\n", rentalId, carId, model, brand, type, seats, price, customerName, phone, rentDate);
                 }
                 if (!hasResults) {
                     System.out.println("❌ No cars are currently rented out.");
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
@@ -1056,18 +1103,12 @@ class Admin{
     void viewOverdueRentals() throws SQLException {
         // Query and schema must match your actual DB!
         try (Connection conn = DBConnect.getConnection()) {
-            String query =
-                    "SELECT r.rental_id, c.car_id, c.model, c.brand, cu.name AS customer_name, cu.phone_no, r.rent_date, r.due_date " +
-                            "FROM rental r " +
-                            "JOIN car c ON r.car_id = c.car_id " +
-                            "JOIN customer cu ON r.customer_id = cu.customer_id " +
-                            "WHERE r.return_date IS NULL AND r.due_date < CURDATE()";
+            String query = "SELECT r.rental_id, c.car_id, c.model, c.brand, cu.name AS customer_name, cu.phone_no, r.rent_date, r.due_date " + "FROM rental r " + "JOIN car c ON r.car_id = c.car_id " + "JOIN customer cu ON r.customer_id = cu.customer_id " + "WHERE r.return_date IS NULL AND r.due_date < CURDATE()";
             try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
                 System.out.println("\n==============================");
                 System.out.println("🚨 Overdue Rentals");
                 System.out.println("==============================");
-                System.out.printf("%-5s %-5s %-12s %-10s %-15s %-12s %-12s %-12s\n",
-                        "RId", "CID", "Model", "Brand", "Customer", "Phone", "Rent Date", "Due Date");
+                System.out.printf("%-5s %-5s %-12s %-10s %-15s %-12s %-12s %-12s\n", "RId", "CID", "Model", "Brand", "Customer", "Phone", "Rent Date", "Due Date");
 
                 boolean found = false;
                 while (rs.next()) {
@@ -1081,14 +1122,13 @@ class Admin{
                     Date rentDate = rs.getDate("rent_date");
                     Date dueDate = rs.getDate("due_date");
 
-                    System.out.printf("%-5d %-5d %-12s %-10s %-15s %-12s %-12s %-12s\n",
-                            rentalId, carId, model, brand, customer, phone, rentDate, dueDate);
+                    System.out.printf("%-5d %-5d %-12s %-10s %-15s %-12s %-12s %-12s\n", rentalId, carId, model, brand, customer, phone, rentDate, dueDate);
                 }
                 if (!found) {
                     System.out.println("❌ No overdue rentals found.");
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
@@ -1106,12 +1146,24 @@ class Admin{
             double totalRevenue = 0;
 
             try (Statement stmt = conn.createStatement()) {
-                try (ResultSet rs = stmt.executeQuery(totalCarsQuery)) { if (rs.next()) totalCars = rs.getInt("total_cars"); }
-                try (ResultSet rs = stmt.executeQuery(totalRentalsQuery)) { if (rs.next()) totalRentals = rs.getInt("total_rentals"); }
-                try (ResultSet rs = stmt.executeQuery(availableCarsQuery)) { if (rs.next()) availableCars = rs.getInt("available"); }
-                try (ResultSet rs = stmt.executeQuery(rentedCarsQuery)) { if (rs.next()) rentedCars = rs.getInt("rented"); }
-                try (ResultSet rs = stmt.executeQuery(overdueQuery)) { if (rs.next()) overdueCount = rs.getInt("overdue"); }
-                try (ResultSet rs = stmt.executeQuery(totalRevenueQuery)) { if (rs.next()) totalRevenue = rs.getDouble("revenue"); }
+                try (ResultSet rs = stmt.executeQuery(totalCarsQuery)) {
+                    if (rs.next()) totalCars = rs.getInt("total_cars");
+                }
+                try (ResultSet rs = stmt.executeQuery(totalRentalsQuery)) {
+                    if (rs.next()) totalRentals = rs.getInt("total_rentals");
+                }
+                try (ResultSet rs = stmt.executeQuery(availableCarsQuery)) {
+                    if (rs.next()) availableCars = rs.getInt("available");
+                }
+                try (ResultSet rs = stmt.executeQuery(rentedCarsQuery)) {
+                    if (rs.next()) rentedCars = rs.getInt("rented");
+                }
+                try (ResultSet rs = stmt.executeQuery(overdueQuery)) {
+                    if (rs.next()) overdueCount = rs.getInt("overdue");
+                }
+                try (ResultSet rs = stmt.executeQuery(totalRevenueQuery)) {
+                    if (rs.next()) totalRevenue = rs.getDouble("revenue");
+                }
             }
 
             System.out.println("\n=========== REPORTS ===========");
@@ -1122,7 +1174,7 @@ class Admin{
             System.out.println("Overdue Rentals: " + overdueCount);
             System.out.printf("Total Revenue: ₹%.2f\n", totalRevenue);
             System.out.println("===============================\n");
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
@@ -1155,10 +1207,11 @@ class Admin{
                     }
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+
     private double getAverageRating(Connection conn, int carId) {
         String sql = "SELECT AVG(rating) AS avg_rating FROM ratings WHERE car_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -1176,12 +1229,7 @@ class Admin{
 }
 
 class Rental {
-    public static Map<String, Double> costCalculator(
-            LocalDateTime start,
-            LocalDateTime expectedEnd,
-            LocalDateTime actualReturn,
-            double pricePerHour,
-            double lateFeePerHour) {
+    public static Map<String, Double> costCalculator(LocalDateTime start, LocalDateTime expectedEnd, LocalDateTime actualReturn, double pricePerHour, double lateFeePerHour) {
 
         Map<String, Double> result = new HashMap<>();
 
@@ -1209,5 +1257,47 @@ class Rental {
         result.put("totalCost", totalCost);
 
         return result;
+    }
+}
+
+class Billing {
+    public static void generateBill(Connection conn, int bookingId, int customerId, double baseAmount, double lateFee, double totalAmount, int paymentId) {
+        String sql = "INSERT INTO billing (booking_id, customer_id, generated_date, base_amount, late_fee, total_amount, payment_id) VALUES (?, ?, NOW(), ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            ps.setInt(2, customerId);
+            ps.setDouble(3, baseAmount);
+            ps.setDouble(4, lateFee);
+            ps.setDouble(5, totalAmount);
+            ps.setInt(6, paymentId);
+            ps.executeUpdate();
+            System.out.println("✅ Bill generated and stored in database.");
+        } catch (SQLException ex) {
+            System.out.println("❌ Failed to generate bill: " + ex.getMessage());
+        }
+    }
+}
+
+class Bill {
+    int billId;
+    int bookingId;
+    int customerId;
+    String generatedDate;
+    double baseAmount;
+    double lateFee;
+    double totalAmount;
+    int paymentId;
+    Bill next;
+
+    Bill(int billId, int bookingId, int customerId, String generatedDate, double baseAmount, double lateFee, double totalAmount, int paymentId) {
+        this.billId = billId;
+        this.bookingId = bookingId;
+        this.customerId = customerId;
+        this.generatedDate = generatedDate;
+        this.baseAmount = baseAmount;
+        this.lateFee = lateFee;
+        this.totalAmount = totalAmount;
+        this.paymentId = paymentId;
+        this.next = null;
     }
 }
