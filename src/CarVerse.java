@@ -113,6 +113,7 @@ public class CarVerse {
             System.out.println("5. Return Car");
             System.out.println("6. Rate a Car");
             System.out.println("7. Logout");
+            System.out.println("8. Update your profile details");
             System.out.print("Enter choice: ");
             choice = sc.nextInt();
             sc.nextLine();
@@ -140,6 +141,9 @@ public class CarVerse {
                     break;
                 case 7:
                     System.out.println("Logged out.");
+                    break;
+                case 8:
+                    customer.updateProfile();
                     break;
                 default:
                     System.out.println("Invalid choice.");
@@ -181,12 +185,17 @@ class Car {
 class Customer {
     Scanner sc = new Scanner(System.in);
     static int customer_Id;
+    private String name;
+    private String email;
+    private String phoneNo;
+    private String address;
+    private LocalDate dob;
+    private String password;
 
     void customerRegistartion() throws SQLException {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter name: ");
             String name = sc.nextLine();
-            String email;
             while (true) {
                 System.out.print("Enter email (must be lowercase and contain '@'): ");
                 email = sc.nextLine().toLowerCase();
@@ -196,7 +205,6 @@ class Customer {
                     System.out.println("❌ Invalid email. Try again.");
                 }
             }
-            String password;
             while (true) {
                 System.out.print("Enter password (min 8 chars, at least 1 special character): ");
                 password = sc.nextLine();
@@ -214,11 +222,10 @@ class Customer {
                     System.out.println("❌ Passwords do not match. Please try again.");
                 }
             }
-            String phone;
             while (true) {
-                System.out.print("Enter 9-digit phone number (not starting with 0): ");
-                phone = sc.nextLine();
-                if (phone.matches("^[1-9][0-9]{8}$")) {
+                System.out.print("Enter phone number (not starting with 0): ");
+                phoneNo = sc.nextLine();
+                if (phoneNo.matches("^[1-9][0-9]{9}$")) {
                     break;
                 } else {
                     System.out.println("❌ Invalid phone number. Try again.");
@@ -226,7 +233,6 @@ class Customer {
             }
             System.out.print("Enter address: ");
             String address = sc.nextLine();
-            LocalDate dob;
             while (true) {
                 System.out.print("Enter date of birth (dd-MM-yyyy): ");
                 String dobInput = sc.nextLine();
@@ -249,7 +255,7 @@ class Customer {
             try (PreparedStatement ps = conn.prepareStatement("INSERT INTO customer(name, email, phone_no, address, dob, password) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
                 ps.setString(1, name);
                 ps.setString(2, email);
-                ps.setString(3, phone);
+                ps.setString(3, phoneNo);
                 ps.setString(4, address);
                 ps.setDate(5, Date.valueOf(dob));
                 ps.setString(6, password);
@@ -263,6 +269,13 @@ class Customer {
                         }
                     }
                 }
+                this.name = name;
+                this.email = email;
+                this.phoneNo = phoneNo;
+                this.address = address;
+                this.dob = dob;
+                this.password = password;
+
             }
         } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
@@ -302,7 +315,19 @@ class Customer {
                         String dbPassword = rs.getString("password");
                         if (password.equals(dbPassword)) {
                             Customer.customer_Id = rs.getInt("customer_id");
-                            System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
+
+                            // ✅ Load all profile details into object
+                            this.name = rs.getString("name");
+                            this.email = rs.getString("email");
+                            this.phoneNo = rs.getString("phone_no");
+                            this.address = rs.getString("address");
+
+                            java.sql.Date sqlDob = rs.getDate("dob");
+                            this.dob = (sqlDob != null) ? sqlDob.toLocalDate() : null;
+
+                            this.password = dbPassword;
+
+                            System.out.println("✅ Login successful! Welcome, " + name + "!");
                             CarVerse.customerMenu();
                         } else {
                             System.out.println("❌ Incorrect password.");
@@ -328,7 +353,19 @@ class Customer {
                         String dbPassword = rs.getString("password");
                         if (password.equals(dbPassword)) {
                             Customer.customer_Id = rs.getInt("customer_id");
-                            System.out.println("✅ Login successful! Welcome, " + rs.getString("name") + "!");
+
+                            // ✅ Load all profile details into object
+                            this.name = rs.getString("name");
+                            this.email = rs.getString("email");
+                            this.phoneNo = rs.getString("phone_no");
+                            this.address = rs.getString("address");
+
+                            java.sql.Date sqlDob = rs.getDate("dob");
+                            this.dob = (sqlDob != null) ? sqlDob.toLocalDate() : null;
+
+                            this.password = dbPassword;
+
+                            System.out.println("✅ Login successful! Welcome, " + name + "!");
                             CarVerse.customerMenu();
                         } else {
                             System.out.println("❌ Incorrect password.");
@@ -342,6 +379,61 @@ class Customer {
             }
         } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
+        }
+    }
+
+    public void updateProfile() {
+
+        try (Connection conn = DBConnect.getConnection()) {
+            System.out.println("\n=== Update Profile ===");
+            System.out.println("Leave blank if you don’t want to update a field.");
+
+            System.out.print("Enter new name (current: " + this.name + "): ");
+            String newName = sc.nextLine();
+            if (!newName.trim().isEmpty()) name = newName;
+
+            System.out.print("Enter new email (current: " + this.email + "): ");
+            String newEmail = sc.nextLine();
+            if (!newEmail.trim().isEmpty()) email = newEmail;
+
+            System.out.print("Enter new phone number (current: " + this.phoneNo + "): ");
+            String newPhone = sc.nextLine();
+            if (!newPhone.trim().isEmpty()) phoneNo = newPhone;
+
+            System.out.print("Enter new address (current: " + this.address + "): ");
+            String newAddress = sc.nextLine();
+            if (!newAddress.trim().isEmpty()) address = newAddress;
+
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            System.out.print("Enter new DOB (yyyy-MM-dd) (current: " + (this.dob != null ? dob : "N/A") + "): ");
+            String newDob = sc.nextLine();
+            if (!newDob.trim().isEmpty()) {
+                this.dob = LocalDate.parse(newDob, fmt);
+            }
+            System.out.print("Enter new password (leave blank to keep current): ");
+            String newPassword = sc.nextLine();
+            if (!newPassword.trim().isEmpty()) password = newPassword;
+
+            // Step 2: Update in DB
+            String query = "UPDATE customer SET name=?, email=?, phone_no=?, address=?, dob=?, password=? WHERE customer_id=?";
+            PreparedStatement ps = conn.prepareStatement(query);
+            ps.setString(1, name);
+            ps.setString(2, email);
+            ps.setString(3, phoneNo);
+            ps.setString(4, address);
+            ps.setDate(5, java.sql.Date.valueOf(this.dob));
+            ps.setString(6, password);
+            ps.setInt(7, Customer.customer_Id);
+
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println("✅ Profile updated successfully!");
+            } else {
+                System.out.println("❌ Failed to update profile.");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("❌ Error updating profile: " + e.getMessage());
         }
     }
 
