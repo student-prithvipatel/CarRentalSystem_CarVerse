@@ -444,19 +444,23 @@ public class Admin {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+    
     private double getAverageRating(Connection conn, int carId) {
-        String sql = "SELECT AVG(rating) AS avg_rating FROM ratings WHERE car_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, carId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getDouble("avg_rating");
-                }
+    String sql = "SELECT getAverageRating(?)";
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setInt(1, carId);
+        try (ResultSet rs = ps.executeQuery())
+        {
+            if(rs.next())
+            {
+                return rs.getDouble(1)
             }
-        } catch (SQLException e) {
-            System.out.println("⚠️ Error fetching rating for car ID " + carId + ": " + e.getMessage());
+            return 0.0;
         }
+    } catch (SQLException e) {
+        System.out.println("⚠️ Error fetching rating: " + e.getMessage());
         return 0.0;
+        }
     }
     void viewAllCustomer() {
         CustomerNode head = null, tail = null;
