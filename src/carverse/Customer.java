@@ -419,11 +419,6 @@ public class Customer {
 
                             int rows = psInsert.executeUpdate();
                             if (rows > 0) {
-                                String updateAvailability = "UPDATE car SET availability = 0 WHERE car_id = ?";
-                                try (PreparedStatement psUpdate = conn.prepareStatement(updateAvailability)) {
-                                    psUpdate.setInt(1, carId);
-                                    psUpdate.executeUpdate();
-                                }
                                 System.out.println("✅ Car booked successfully!");
                                 System.out.println("⏱ Duration: " + hours + " hours");
                                 System.out.println("💰 Total cost: ₹" + totalCost);
