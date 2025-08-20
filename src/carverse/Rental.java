@@ -1,6 +1,6 @@
 package carverse;
 
-import java.time.Duration;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,33 +11,39 @@ public class Rental {
             LocalDateTime expectedEnd,
             LocalDateTime actualReturn,
             double pricePerHour,
-            double lateFeePerHour) {
+            double lateFeePerHour) throws SQLException {
 
         Map<String, Double> result = new HashMap<>();
 
-        // Make sure we always calculate in the correct order
-        long totalHours = Duration.between(start, actualReturn).toHours();
-        if (totalHours < 0) {
-            totalHours = Duration.between(actualReturn, start).toHours(); // swap if needed
+        String sql = "{CALL calculate_rental_cost(?,?,?,?,?,?,?,?,?,?)}";
+
+        try (Connection conn = DBConnect.getConnection();
+             CallableStatement cs = conn.prepareCall(sql)) {
+
+            // IN parameters
+            cs.setTimestamp(1, Timestamp.valueOf(start));
+            cs.setTimestamp(2, Timestamp.valueOf(expectedEnd));
+            cs.setTimestamp(3, Timestamp.valueOf(actualReturn));
+            cs.setDouble(4, pricePerHour);
+            cs.setDouble(5, lateFeePerHour);
+
+            // OUT parameters
+            cs.registerOutParameter(6, Types.INTEGER);   // total_hours
+            cs.registerOutParameter(7, Types.INTEGER);   // late_hours
+            cs.registerOutParameter(8, Types.DECIMAL);   // rental_cost
+            cs.registerOutParameter(9, Types.DECIMAL);   // late_fee
+            cs.registerOutParameter(10, Types.DECIMAL);  // total_cost
+
+            // Execute procedure
+            cs.execute();
+
+            // Fetch results
+            result.put("totalHours", (double) cs.getInt(6));
+            result.put("lateHours", (double) cs.getInt(7));
+            result.put("rentalCost", cs.getDouble(8));
+            result.put("lateFee", cs.getDouble(9));
+            result.put("totalCost", cs.getDouble(10));
         }
-
-        if (Duration.between(start, actualReturn).toMinutes() % 60 != 0) {
-            totalHours += 1; // round up partial hour
-        }
-
-        long lateHours = Duration.between(expectedEnd, actualReturn).toHours();
-        lateHours = Math.max(lateHours, 0);
-
-        double rentalCost = totalHours * pricePerHour;
-        double lateFee = lateHours * lateFeePerHour;
-        double totalCost = rentalCost + lateFee;
-
-        result.put("totalHours", (double) totalHours);
-        result.put("lateHours", (double) lateHours);
-        result.put("rentalCost", rentalCost);
-        result.put("lateFee", lateFee);
-        result.put("totalCost", totalCost);
-
         return result;
     }
 }
