@@ -1,6 +1,7 @@
 package carverse.admin;
 
 import carverse.model.Car;
+import carverse.model.CustomerList;
 import carverse.model.CustomerNode;
 import carverse.db.DBConnect;
 import carverse.main.CarVerse;
@@ -10,8 +11,9 @@ import java.util.HashMap;
 import java.util.Scanner;
 
 public class Admin {
-    Scanner sc=new Scanner(System.in);
+    Scanner sc = new Scanner(System.in);
     HashMap<Integer, Car> carMap = new HashMap<>();
+
     public void adminLogin() {
         try (Connection conn = DBConnect.getConnection()) {
             String query = "SELECT * FROM admin WHERE adminname = ? AND password = ?";
@@ -30,11 +32,12 @@ public class Admin {
                     }
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
-    public void addCar(){
+
+    public void addCar() {
         try (Connection conn = DBConnect.getConnection()) {
             String sql = "INSERT INTO car (model, brand, type, price_per_hour, seats, availability) VALUES (?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pst = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -70,10 +73,11 @@ public class Admin {
                     System.out.println("❌ Failed to add car.");
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+
     public void viewAllCars() {
         try (Connection conn = DBConnect.getConnection()) {
             String query = "SELECT * FROM car";
@@ -98,10 +102,11 @@ public class Admin {
                             id, model, brand, type, seats, price, status, avgRating);
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+
     public void updateCarDetails() {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter Car ID to update: ");
@@ -113,9 +118,9 @@ public class Admin {
             System.out.println("3. Price per Hour");
             System.out.println("4. Availability (true/false)");
             System.out.print("Enter choice: ");
-            int choice = CarVerse.getIntInput(1,4);
+            int choice = CarVerse.getIntInput(1, 4);
 
-            String column ;
+            String column;
             if (choice == 1) {
                 column = "brand";
                 System.out.print("Enter new brand: ");
@@ -146,12 +151,12 @@ public class Admin {
                 int r = ps.executeUpdate();
                 System.out.println(r > 0 ? "Car updated successfully." : "Car update failed.");
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
 
-    public void viewAvailableCars(){
+    public void viewAvailableCars() {
         System.out.println("\n=== View Available Cars ===");
         System.out.println("Sort by:");
         System.out.println("1. Brand (A-Z)");
@@ -163,27 +168,27 @@ public class Admin {
         System.out.print("Enter choice: ");
         int choice = sc.nextInt();
 
-        String orderBy ;
+        String orderBy;
         switch (choice) {
-            case 1 :
+            case 1:
                 orderBy = "ORDER BY brand ASC";
                 break;
-            case 2 :
+            case 2:
                 orderBy = "ORDER BY brand DESC";
                 break;
-            case 3 :
+            case 3:
                 orderBy = "ORDER BY price_per_hour ASC";
                 break;
             case 4:
                 orderBy = "ORDER BY type ASC";
                 break;
-            case 5 :
+            case 5:
                 orderBy = "ORDER BY seats ASC";
                 break;
-            case 6 :
+            case 6:
                 orderBy = "ORDER BY seats DESC";
                 break;
-            default :
+            default:
                 System.out.println("Invalid choice. Showing default order.");
                 orderBy = "ORDER BY car_id ASC";
                 break;
@@ -277,21 +282,21 @@ public class Admin {
 
     public void viewCurrentlyRentedCars() throws SQLException {
         String sql = """
-        SELECT
-          booking_id,
-          car_id,
-          customer_id,
-          start_datetime,
-          end_datetime,
-          start_location,
-          end_location,
-          total_hours,
-          total_cost,
-          status
-        FROM bookings
-        WHERE status = 'Booked'
-        ORDER BY start_datetime DESC
-    """;
+                    SELECT
+                      booking_id,
+                      car_id,
+                      customer_id,
+                      start_datetime,
+                      end_datetime,
+                      start_location,
+                      end_location,
+                      total_hours,
+                      total_cost,
+                      status
+                    FROM bookings
+                    WHERE status = 'Booked'
+                    ORDER BY start_datetime DESC
+                """;
 
         try (Connection conn = DBConnect.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -301,7 +306,7 @@ public class Admin {
             System.out.println("🚘 Currently Rented (from bookings)");
             System.out.println("==============================");
             System.out.printf("%-8s %-6s %-11s %-23s %-23s %-18s %-18s %-10s %-12s %-10s%n",
-                    "BookID","CarID","CustomerID","Start","End","StartLoc","EndLoc","Hours","Cost","Status");
+                    "BookID", "CarID", "CustomerID", "Start", "End", "StartLoc", "EndLoc", "Hours", "Cost", "Status");
 
             boolean any = false;
             while (rs.next()) {
@@ -330,15 +335,15 @@ public class Admin {
 
     public void viewOverdueRentals() throws SQLException {
         String sql = """
-        SELECT booking_id, customer_id, car_id, start_location, end_location, start_datetime, end_datetime, total_hours,
-          total_cost, status,
-          -- how many whole hours past the end time
-          TIMESTAMPDIFF(HOUR, end_datetime, CURRENT_TIMESTAMP) AS hours_overdue
-        FROM bookings
-        WHERE status = 'Overdue'
-           OR (status = 'Booked' AND end_datetime < CURRENT_TIMESTAMP)
-        ORDER BY end_datetime ASC
-    """;
+                    SELECT booking_id, customer_id, car_id, start_location, end_location, start_datetime, end_datetime, total_hours,
+                      total_cost, status,
+                      -- how many whole hours past the end time
+                      TIMESTAMPDIFF(HOUR, end_datetime, CURRENT_TIMESTAMP) AS hours_overdue
+                    FROM bookings
+                    WHERE status = 'Overdue'
+                       OR (status = 'Booked' AND end_datetime < CURRENT_TIMESTAMP)
+                    ORDER BY end_datetime ASC
+                """;
 
         try (Connection conn = DBConnect.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -349,13 +354,14 @@ public class Admin {
             System.out.println("==============================");
             System.out.printf(
                     "%-8s %-6s %-11s %-23s %-23s %-18s %-18s %-10s %-12s %-10s%n",
-                    "BookID","CarID","CustomerID","Start","End","StartLoc","EndLoc","Hours","Cost","Overdue(h)"
+                    "BookID", "CarID", "CustomerID", "Start", "End", "StartLoc", "EndLoc", "Hours", "Cost", "Overdue(h)"
             );
 
             boolean any = false;
             int count = 0;
             while (rs.next()) {
-                any = true; count++;
+                any = true;
+                count++;
                 System.out.printf(
                         "%-8d %-6d %-11d %-23s %-23s %-18s %-18s %-10.2f %-12.2f %-10d%n",
                         rs.getInt("booking_id"),
@@ -394,13 +400,27 @@ public class Admin {
             double totalRevenue = 0;
 
             try (Statement stmt = conn.createStatement()) {
-                try (ResultSet rs = stmt.executeQuery(totalCarsQuery)) { if (rs.next()) totalCars = rs.getInt("total_cars"); }
-                try (ResultSet rs = stmt.executeQuery(totalRentalsQuery)) { if (rs.next()) totalRentals = rs.getInt("total_rentals"); }
-                try (ResultSet rs = stmt.executeQuery(availableCarsQuery)) { if (rs.next()) availableCars = rs.getInt("available"); }
-                try (ResultSet rs = stmt.executeQuery(rentedCarsQuery)) { if (rs.next()) rentedCars = rs.getInt("rented"); }
-                try (ResultSet rs = stmt.executeQuery(overdueQuery)) { if (rs.next()) overdueCount = rs.getInt("overdue"); }
-                try (ResultSet rs = stmt.executeQuery(cancelledQuery))     { if (rs.next()) cancelledCount = rs.getInt("cancelled"); }
-                try (ResultSet rs = stmt.executeQuery(totalRevenueQuery)) { if (rs.next()) totalRevenue = rs.getDouble("revenue"); }
+                try (ResultSet rs = stmt.executeQuery(totalCarsQuery)) {
+                    if (rs.next()) totalCars = rs.getInt("total_cars");
+                }
+                try (ResultSet rs = stmt.executeQuery(totalRentalsQuery)) {
+                    if (rs.next()) totalRentals = rs.getInt("total_rentals");
+                }
+                try (ResultSet rs = stmt.executeQuery(availableCarsQuery)) {
+                    if (rs.next()) availableCars = rs.getInt("available");
+                }
+                try (ResultSet rs = stmt.executeQuery(rentedCarsQuery)) {
+                    if (rs.next()) rentedCars = rs.getInt("rented");
+                }
+                try (ResultSet rs = stmt.executeQuery(overdueQuery)) {
+                    if (rs.next()) overdueCount = rs.getInt("overdue");
+                }
+                try (ResultSet rs = stmt.executeQuery(cancelledQuery)) {
+                    if (rs.next()) cancelledCount = rs.getInt("cancelled");
+                }
+                try (ResultSet rs = stmt.executeQuery(totalRevenueQuery)) {
+                    if (rs.next()) totalRevenue = rs.getDouble("revenue");
+                }
             }
 
             System.out.println("\n=========== REPORTS ===========");
@@ -412,12 +432,12 @@ public class Admin {
             System.out.println("Cancelled Rentals: " + cancelledCount);
             System.out.printf("Total Revenue: ₹%.2f\n", totalRevenue);
             System.out.println("===============================\n");
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
 
-    public void removeCar()  {
+    public void removeCar() {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter Car ID to remove: ");
             int carId = sc.nextInt();
@@ -445,18 +465,17 @@ public class Admin {
                     }
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+
     private double getAverageRating(Connection conn, int carId) {
         String sql = "SELECT getAverageRating(?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, carId);
-            try (ResultSet rs = ps.executeQuery())
-            {
-                if(rs.next())
-                {
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
                     return rs.getDouble(1);
                 }
                 return 0.0;
@@ -466,42 +485,53 @@ public class Admin {
             return 0.0;
         }
     }
-    public void viewAllCustomer() {
-        CustomerNode head = null, tail = null;
-        int count = 0;
-        try (Connection conn = DBConnect.getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT * FROM customer")) {
 
-            // 1. Load all customers into LinkedList
+    public void viewAllCustomer() {
+        CustomerList list = new carverse.model.CustomerList();
+
+        list.clear();
+
+        String sql = "SELECT customer_id, name, email, phone_no, address, dob FROM customer";
+
+        try (Connection conn = DBConnect.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
             while (rs.next()) {
-                CustomerNode node = new CustomerNode(rs.getInt("customer_id"), rs.getString("name"), rs.getString("email"), rs.getString("phone_no"), rs.getString("address"), rs.getDate("dob"));
-                if (head == null) {
-                    head = tail = node;
-                } else {
-                    tail.next = node;
-                    tail = node;
-                }
-                count++;
+                list.insertCustomer(
+                        rs.getInt("customer_id"),
+                        rs.getString("name"),
+                        rs.getString("email"),
+                        rs.getString("phone_no"),
+                        rs.getString("address"),
+                        rs.getDate("dob")
+                );
             }
 
-            if (count == 0) {
+            if (list.isEmpty()) {
                 System.out.println("\n❌ No customers found.");
                 return;
             }
 
-            // 2. Print all customers in tabular format from LinkedList
             System.out.println("\n============== All Customers ==============");
-            System.out.printf("%-5s %-20s %-25s %-12s %-25s %-12s\n", "ID", "Name", "Email", "Phone", "Address", "DOB");
-            System.out.println("-------------------------------------------------------------------------------");
+            System.out.printf("%-5s %-20s %-25s %-15s %-25s %-12s\n",
+                    "ID", "Name", "Email", "Phone", "Address", "DOB");
+            System.out.println("--------------------------------------------------------------------------------------------");
 
-            CustomerNode current = head;
-            while (current != null) {
-                System.out.printf("%-5d %-20s %-25s %-12s %-25s %-12s\n", current.id, current.name, current.email, current.phone, current.address, current.dob != null ? current.dob.toString() : "");
-                current = current.next;
+            for (CustomerNode cur = list.head(); cur != null; cur = cur.next) {
+                System.out.printf("%-5d %-20s %-25s %-15s %-25s %-12s\n",
+                        cur.id,
+                        cur.name,
+                        cur.email,
+                        cur.phone,
+                        cur.address,
+                        cur.dob != null ? cur.dob.toString() : "");
             }
             System.out.println("===========================================\n");
 
         } catch (Exception e) {
             System.out.println("❌ Error displaying customers: " + e.getMessage());
         }
+
     }
 }
