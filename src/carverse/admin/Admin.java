@@ -37,47 +37,46 @@ public class Admin {
         }
     }
 
-    public void addCar() {
+    void addCar() {
         try (Connection conn = DBConnect.getConnection()) {
-            String sql = "INSERT INTO car (model, brand, type, price_per_hour, seats, availability) VALUES (?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement pst = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            String sql = "{CALL addCar(?, ?, ?, ?, ?, ?)}";
+            try (CallableStatement cs = conn.prepareCall(sql)) {
                 System.out.println("\n=== Add New Car ===");
                 System.out.print("Enter car model: ");
                 String model = sc.nextLine();
-                pst.setString(1, model);
+                cs.setString(1, model);
+
                 System.out.print("Enter car brand: ");
                 String brand = sc.nextLine();
-                pst.setString(2, brand);
+                cs.setString(2, brand);
+
                 System.out.print("Enter car type: ");
                 String type = sc.nextLine();
-                pst.setString(3, type);
+                cs.setString(3, type);
+
                 System.out.print("Enter price per hour: ");
                 double pricePerHour = sc.nextDouble();
-                pst.setDouble(4, pricePerHour);
+                cs.setDouble(4, pricePerHour);
+
                 System.out.print("Enter seats: ");
                 int seats = sc.nextInt();
-                pst.setInt(5, seats);
-                boolean availability = true;
-                pst.setBoolean(6, availability);
+                cs.setInt(5, seats);
+
+                boolean availability = true; // always true when adding
+                cs.setBoolean(6, availability);
                 sc.nextLine();
-                if (pst.executeUpdate() > 0) {
-                    try (ResultSet rs = pst.getGeneratedKeys()) {
-                        if (rs.next()) {
-                            int id = rs.getInt(1);
-                            Car car = new Car(id, model, brand, type, pricePerHour, availability, seats);
-                            carMap.put(id, car);
-                            System.out.println("✅ Car added with ID: " + id);
-                        }
-                    }
+
+                int rows = cs.executeUpdate();
+                if (rows > 0) {
+                    System.out.println("✅ Car added successfully!");
                 } else {
                     System.out.println("❌ Failed to add car.");
                 }
             }
         } catch (Exception e) {
-            System.out.println("❌ Something went wrong: " + e.getMessage());
+            System.out.println("❌ Error: " + e.getMessage());
         }
     }
-
     public void viewAllCars() {
         try (Connection conn = DBConnect.getConnection()) {
             String query = "SELECT * FROM car";
