@@ -1,18 +1,15 @@
 package carverse.admin;
 
-import carverse.model.Car;
 import carverse.model.CustomerList;
 import carverse.model.CustomerNode;
 import carverse.db.DBConnect;
 import carverse.main.CarVerse;
 
 import java.sql.*;
-import java.util.HashMap;
 import java.util.Scanner;
 
 public class Admin {
     Scanner sc = new Scanner(System.in);
-    HashMap<Integer, Car> carMap = new HashMap<>();
 
     public void adminLogin() {
         try (Connection conn = DBConnect.getConnection()) {
@@ -77,6 +74,7 @@ public class Admin {
             System.out.println("❌ Error: " + e.getMessage());
         }
     }
+
     public void viewAllCars() {
         try (Connection conn = DBConnect.getConnection()) {
             String query = "SELECT * FROM car";
@@ -116,7 +114,7 @@ public class Admin {
             System.out.println("2. Model");
             System.out.println("3. Price per Hour");
             System.out.println("4. Availability (true/false)");
-            System.out.print("Enter choice: ");
+            System.out.print("Choose an option (1 to 4): ");
             int choice = CarVerse.getIntInput(1, 4);
 
             String column;
@@ -164,8 +162,8 @@ public class Admin {
         System.out.println("4. Car type");
         System.out.println("5. Seats (Low to High)");
         System.out.println("6. Seats (High to Low)");
-        System.out.print("Enter choice: ");
-        int choice = sc.nextInt();
+        System.out.print("Choose an option (1 to 6): ");
+        int choice = CarVerse.getIntInput(1,6);
 
         String orderBy;
         switch (choice) {
@@ -266,9 +264,6 @@ public class Admin {
                 int updatedRows = updatePs.executeUpdate();
                 if (updatedRows > 0) {
                     System.out.println("✅ Car availability updated successfully.");
-                    if (carMap.containsKey(carId)) {
-                        carMap.get(carId).availability = availability;
-                    }
                 } else {
                     System.out.println("❌ Failed to update car availability.");
                 }
@@ -456,7 +451,6 @@ public class Admin {
 
                         int result = deletePs.executeUpdate();
                         if (result > 0) {
-                            carMap.remove(carId);
                             System.out.println("✅ Car with ID " + carId + " removed successfully.");
                         } else {
                             System.out.println("❌ Failed to remove car. Please check Car ID.");
@@ -486,7 +480,7 @@ public class Admin {
     }
 
     public void viewAllCustomer() {
-        CustomerList list = new carverse.model.CustomerList();
+        CustomerList list = new CustomerList();
 
         list.clear();
 
