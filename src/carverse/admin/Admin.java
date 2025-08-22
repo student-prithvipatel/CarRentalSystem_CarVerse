@@ -37,7 +37,7 @@ public class Admin {
         }
     }
 
-    void addCar() {
+    public void addCar() {
         try (Connection conn = DBConnect.getConnection()) {
             String sql = "{CALL addCar(?, ?, ?, ?, ?, ?)}";
             try (CallableStatement cs = conn.prepareCall(sql)) {
