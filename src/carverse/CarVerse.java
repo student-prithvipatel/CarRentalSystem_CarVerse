@@ -11,28 +11,43 @@ public class CarVerse {
     static Customer customer = new Customer();
 
     public static void main(String[] args) throws SQLException {
-        int choice;
+        int choice=-1;
         do {
-            System.out.println("1. User login");
-            System.out.println("2. User registration");
-            System.out.println("3. Admin login");
+            System.out.println();
+            System.out.println("<><><> Welcome to CarVerse <><><>");
+            System.out.println();
+            System.out.println("1. Admin login");
+            System.out.println("2. User login");
+            System.out.println("3. User registration");
             System.out.println("4. Exit");
-            System.out.println("Enter choice from 1 to 4");
-            choice = getIntInput(1, 4);
-            switch (choice) {
-                case 1:
-                    customer.customerLogin();
-                    break;
-                case 2:
-                    customer.customerRegistartion();
-                    break;
-                case 3:
-                    admin.adminLogin();
-                    break;
-                case 4:
-                    System.out.println("Good Bye>>>");
+            System.out.println();
+            System.out.print("Enter choice from 1 to 4: ");
+
+            String input = sc.nextLine();  // always read as string
+            try {
+                choice = Integer.parseInt(input); // convert to int
+                switch (choice) {
+                    case 1:
+                        admin.adminLogin();
+                        break;
+                    case 2:
+                        customer.customerLogin();
+                        break;
+                    case 3:
+                        customer.customerRegistartion();
+                        break;
+                    case 4:
+                        System.out.println("Good Bye >>>");
+                        break;
+                    default:
+                        System.out.println("❌ Invalid choice! Please enter a number between 1 and 4.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("❌ Invalid input! Please enter only integers between 1 and 4.");
             }
+
         } while (choice != 4);
+
     }
 
     static void adminMenu() throws SQLException {
