@@ -90,3 +90,77 @@ CarVerse/
 ```bash
 git clone https://github.com/yourusername/CarVerse.git
 cd CarVerse
+```
+
+### 2. Setup MySQL Database
+- Create a database carrental
+- Import the SQL schema (database/carrental.sql)
+- Add procedures & functions
+
+### 3. Configure DB Connection
+**Update DBConnect.java:**
+```bash
+static final String URL = "jdbc:mysql://localhost:3306/carrental";
+static final String USER = "root";        // your MySQL username
+static final String PASSWORD = " ";       // your MySQL password
+```
+
+### 4. Run the Project
+- Open in IntelliJ / Eclipse
+- Run CarVerse.java (main class)
+- Use menus to explore customer & admin features
+
+---
+
+## 📸 Sample Outputs
+
+**Customer Login** 
+```bash
+🔑   CarVerse - Customer Login
+1️⃣  Login using Email & Password
+2️⃣  Login using Phone & Password
+3️⃣  Go Back
+```
+
+**Book a Car**
+```bash
+Enter Car ID: 5
+Start Location: Ahmedabad
+End Location: Surat
+Start Date & Time: 2025-09-05 10:00
+End Date & Time: 2025-09-05 15:00
+✅ Car booked successfully!
+⏱ Duration: 5 hours
+💰 Total cost: ₹2500
+```
+
+**Billing Example**
+```bash
+=====================================
+           🧾  RENTAL BILL  🧾
+=====================================
+📄 Booking ID      : 12
+🚗 Car ID          : 5
+🔤 Model           : Swift
+🏷️ Brand           : Maruti
+🚘 Type            : Sedan
+🪑 Seats           : 4
+-------------------------------------
+⏱ Total Hours     : 5.0 hrs
+💰 Base Price      : ₹2500.00
+⏰ Late Hours      : 2.0 hrs
+🔻 Late Fee        : ₹500.00
+💳 Total Paid      : ₹3000.00
+💳 Payment Method  : card
+✅ Thank you for choosing CarVerse!
+=====================================
+```
+
+---
+
+## 🚀 Future Enhancements
+- GUI with JavaFX / Swing
+- SMS & WhatsApp notifications
+- AI-powered dynamic pricing (based on demand & time)
+- Online payment gateway integration
+- Cloud deployment (AWS / Azure)
