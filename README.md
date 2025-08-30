@@ -94,7 +94,7 @@ cd CarVerse
 
 ### 2. Setup MySQL Database
 - Create a database carrental
-- Import the SQL schema (database/carrental.sql)
+- Import the SQL schema (src/carrental.sql)
 - Add procedures & functions
 
 ### 3. Configure DB Connection
