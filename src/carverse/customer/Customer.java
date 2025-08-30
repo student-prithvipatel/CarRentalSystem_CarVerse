@@ -1,7 +1,7 @@
 package carverse.customer;
 
 import carverse.db.DBConnect; // DB connection
-import carverse.payment.PaymentFactory; // to do payment
+import carverse.payment.PaymentFactory; // payment handling
 import carverse.rental.Rental; // costCalculator
 import carverse.model.SimpleHash; // password hashing
 import carverse.main.CarVerse; // to call CarVerse.customerMenu()
@@ -32,22 +32,26 @@ public class Customer {
     private LocalDate dob;
     private int password_hash;
 
+    // Register new customer
     public void customerRegistartion(){
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter name: ");
             name = sc.nextLine();
+
+            // email validation
             while (true) {
                 System.out.print("Enter email (must be lowercase and contain '@'): ");
                 email = sc.nextLine().toLowerCase();
-                if (email.contains("@")
-                        && email.equals(email.toLowerCase())
+                if (email.equals(email.toLowerCase())
                         && email.indexOf('@') == email.lastIndexOf('@')
-                        && email.matches("^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$")) {
-                    break;
+                        && email.matches("^[a-z0-9._%+-]+@(gmail\\.com|outlook\\.com|yahoo\\.com)$")) {
+                    break; // ✅ valid email
                 } else {
-                    System.out.println("❌ Invalid email. Try again.");
+                    System.out.println("❌ Invalid email. Only Gmail, Outlook, or Yahoo allowed. Try again.");
                 }
             }
+
+            // password validation + hashing
             while (true) {
                 System.out.print("Enter password (min 8 chars, at least 1 special character): ");
                 String password = sc.nextLine();
@@ -66,17 +70,22 @@ public class Customer {
                     System.out.println("❌ Passwords do not match. Please try again.");
                 }
             }
+
+            // phone number validation
             while (true) {
-                System.out.print("Enter 10 digit phone number (not starting with 0): ");
+                System.out.print("Enter 10 digit phone number (Must be 10 digits and start with 6–9): ");
                 phoneNo = sc.nextLine();
                 if (phoneNo.matches("^[6-9][0-9]{9}$")) {
                     break;
                 } else {
-                    System.out.println("❌ Invalid phone number. Try again.");
+                    System.out.println("❌ Invalid phone number. Must be 10 digits and start with 6–9. Try again.");
                 }
             }
+
             System.out.print("Enter address: ");
             address = sc.nextLine();
+
+            // DOB validation
             while (true) {
                 System.out.print("Enter date of birth (dd-MM-yyyy): ");
                 String dobInput = sc.nextLine();
@@ -96,6 +105,8 @@ public class Customer {
                     System.out.println("❌ Invalid date format. Please use dd-MM-yyyy.");
                 }
             }
+
+            // insert new customer
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO customer(name, email, phone_no, address, dob, password_hash) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
                 ps.setString(1, name);
@@ -114,20 +125,27 @@ public class Customer {
                         }
                     }
                 }
-                CarVerse.customerMenu();
+                CarVerse.customerMenu(); // go to customer menu
             }
         }catch (Exception e) {
             System.out.println("❌ Something went wrong: " + e.getMessage());
         }
     }
+
+    // Customer login (by email/phone + password)
     public void customerLogin() {
         try (Connection conn = DBConnect.getConnection()) {
             while (true) { // main login loop
-                System.out.println("===== Customer Login =====");
-                System.out.println("1. Login using Email and Password");
-                System.out.println("2. Login using Phone Number and Password");
-                System.out.println("3. Go back");
-                System.out.print("Choose an option (1 to 3): ");
+                System.out.println("\n=====================================");
+                System.out.println("🔑   CarVerse - Customer Login   🔑");
+                System.out.println("=====================================\n");
+
+                System.out.println("1️⃣  Login using Email & Password");
+                System.out.println("2️⃣  Login using Phone No. & Password");
+                System.out.println("3️⃣  Go Back");
+
+                System.out.println("\n-------------------------------------");
+                System.out.print("👉 Choose an option (1 - 3): ");
                 int choice = CarVerse.getIntInput(1, 3);
 
                 String lookupSql = null;
@@ -135,7 +153,7 @@ public class Customer {
                 String lookupValue = null;
 
                 switch (choice) {
-                    case 1 :
+                    case 1 : // login with email
                         lookupSql = "SELECT * FROM customer WHERE email = ?";
                         lookupValueLabel = "email";
 
@@ -144,11 +162,20 @@ public class Customer {
                             String email = sc.nextLine().trim().toLowerCase();
 
                             // validate email format
-                            if (!email.matches("^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$")) {
-                                System.out.println("❌ Invalid email format.");
-                                System.out.println("1. Try again");
-                                System.out.println("2. Go back");
-                                int opt = CarVerse.getIntInput(1, 2);
+                            if (!(email.equals(email.toLowerCase())
+                                    && email.indexOf('@') == email.lastIndexOf('@')
+                                    && email.matches("^[a-z0-9._%+-]+@(gmail\\.com|outlook\\.com|yahoo\\.com)$"))) {
+                                System.out.println("❌ Invalid email. Only Gmail, Outlook, or Yahoo allowed. Try again.");
+                                System.out.println("\n=====================================");
+                                System.out.println("🔁   What would you like to do?   🔙");
+                                System.out.println("=====================================\n");
+
+                                System.out.println("1️⃣  Try Again");
+                                System.out.println("2️⃣  Go Back");
+
+                                System.out.println("\n-------------------------------------");
+                                System.out.print("👉 Choose an option (1 or 2): ");
+                                int opt = CarVerse.getIntInput(1, 2); // retry or back
                                 if (opt == 1) {
                                     continue;
                                 } else {
@@ -160,7 +187,7 @@ public class Customer {
                             }
                         }
                         break;
-                    case 2 :
+                    case 2 : // login with phone number
                         lookupSql = "SELECT * FROM customer WHERE phone_no = ?";
                         lookupValueLabel = "phone number";
 
@@ -170,9 +197,16 @@ public class Customer {
 
                             // simple Indian phone validation
                             if (!phoneNo.matches("^[6-9][0-9]{9}$")) {
-                                System.out.println("❌ Invalid phone number.");
-                                System.out.println("1. Try again");
-                                System.out.println("2. Go back");
+                                System.out.println("❌ Invalid phone number. Must be 10 digits and start with 6–9. ");
+                                System.out.println("\n=====================================");
+                                System.out.println("🔁   What would you like to do?   🔙");
+                                System.out.println("=====================================\n");
+
+                                System.out.println("1️⃣  Try Again");
+                                System.out.println("2️⃣  Go Back");
+
+                                System.out.println("\n-------------------------------------");
+                                System.out.print("👉 Choose an option (1 or 2): "); // retry or back
                                 int opt = CarVerse.getIntInput(1, 2);
                                 if (opt == 1) {
                                     continue;
@@ -189,7 +223,7 @@ public class Customer {
                         return; // go back to main menu
                 }
 
-                // --- check DB for account ---
+                // check DB for account
                 try (PreparedStatement ps = conn.prepareStatement(lookupSql)) {
                     ps.setString(1, lookupValue);
                     try (ResultSet rs = ps.executeQuery()) {
@@ -198,7 +232,7 @@ public class Customer {
                             return;
                         }
 
-                        // Cache values
+                        // fetch details
                         int customerId   = rs.getInt("customer_id");
                         int dbPassword   = rs.getInt("password_hash");
                         String dbName    = rs.getString("name");
@@ -208,7 +242,7 @@ public class Customer {
                         java.sql.Date sqlDob = rs.getDate("dob");
                         LocalDate dbDob = (sqlDob != null) ? sqlDob.toLocalDate() : null;
 
-                        // --- password attempts ---
+                        // password attempts
                         final int MAX_ATTEMPTS = 3;
                         boolean authed = false;
                         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -227,8 +261,16 @@ public class Customer {
                         if (!authed) {
                             // after 3 failed tries
                             System.out.println("\n❌ Too many failed attempts.");
-                            System.out.println("1. Reset password");
-                            System.out.println("2. Go back");
+                            //reset or go back
+                            System.out.println("\n=====================================");
+                            System.out.println("🔐   Account Recovery Options   🔐");
+                            System.out.println("=====================================\n");
+
+                            System.out.println("1️⃣  Reset Password");
+                            System.out.println("2️⃣  Go Back");
+
+                            System.out.println("\n-------------------------------------");
+                            System.out.print("👉 Choose an option (1 or 2): ");
                             int opt = CarVerse.getIntInput(1, 2);
 
                             if (opt == 1) {
@@ -236,6 +278,8 @@ public class Customer {
                                     System.out.println("⚠️ DOB not available. Cannot reset here.");
                                     return;
                                 }
+
+                                //check dob and validate with db
                                 System.out.print("Enter your DOB (DD-MM-YYYY): ");
                                 String dobStr = sc.nextLine().trim();
                                 try {
@@ -250,6 +294,7 @@ public class Customer {
                                     return;
                                 }
 
+                                //new password
                                 System.out.print("Enter new password: ");
                                 String p1 = sc.nextLine();
                                 System.out.print("Re-enter new password: ");
@@ -294,39 +339,108 @@ public class Customer {
         }
     }
 
+    // Update customer profile
     public void updateProfile() {
 
         try (Connection conn = DBConnect.getConnection()) {
             System.out.println("\n=== Update Profile ===");
             System.out.println("Leave blank if you don’t want to update a field.");
 
+            // update fields if entered
             System.out.print("Enter new name (current: " + this.name + "): ");
             String newName = sc.nextLine();
             if (!newName.trim().isEmpty()) name = newName;
 
-            System.out.print("Enter new email (current: " + this.email + "): ");
-            String newEmail = sc.nextLine();
-            if (!newEmail.trim().isEmpty()) email = newEmail;
+            // email validation
+            while (true) {
+                System.out.print("Enter new email (current: " + this.email + "): ");
+                String newEmail = sc.nextLine();
+                if (!newEmail.trim().isEmpty()) {
+                    if (newEmail.equals(newEmail.toLowerCase())
+                            && newEmail.indexOf('@') == newEmail.lastIndexOf('@')
+                            && newEmail.matches("^[a-z0-9._%+-]+@(gmail\\.com|outlook\\.com|yahoo\\.com)$")) {
+                        email = newEmail;
+                        break; // ✅ valid email
+                    } else {
+                        System.out.println("❌ Invalid email. Only Gmail, Outlook, or Yahoo allowed. Try again.");
+                    }
+                }
+                else{
+                    break;
+                }
+            }
 
-            System.out.print("Enter new phone number (current: " + this.phoneNo + "): ");
-            String newPhone = sc.nextLine();
-            if (!newPhone.trim().isEmpty()) phoneNo = newPhone;
+            // phone validation
+            while (true) {
+                System.out.print("Enter new phone number (current: " + this.phoneNo + "): ");
+                String newPhone = sc.nextLine();
+                if (!newPhone.trim().isEmpty()) {
+                    if (newPhone.matches("^[6-9][0-9]{9}$")) {
+                        phoneNo=newPhone;
+                        break;
+                    } else {
+                        System.out.println("❌ Invalid phone number. Must be 10 digits and start with 6–9. Try again.");
+                    }
+                }
+                else {
+                    break;
+                }
+            }
 
+            // address update
             System.out.print("Enter new address (current: " + this.address + "): ");
             String newAddress = sc.nextLine();
             if (!newAddress.trim().isEmpty()) address = newAddress;
 
-            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            System.out.print("Enter new DOB (yyyy-MM-dd) (current: " + (this.dob != null ? dob : "N/A") + "): ");
-            String newDob = sc.nextLine();
-            if (!newDob.trim().isEmpty()) {
-                this.dob = LocalDate.parse(newDob, fmt);
+            // dob update
+            while (true) {
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                System.out.print("Enter new DOB (yyyy-MM-dd) (current: " + (this.dob != null ? dob : "N/A") + "): ");
+                String newDob = sc.nextLine();
+                try {
+                    if (!newDob.trim().isEmpty()) {
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                        dob = LocalDate.parse(newDob, formatter);
+
+                        LocalDate today = LocalDate.now();
+                        int age = Period.between(dob, today).getYears();
+
+                        if (age < 18) {
+                            System.out.println("❌ You must be at least 18 years old to register.");
+                            continue;
+                        }
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                } catch (DateTimeParseException e) {
+                    System.out.println("❌ Invalid date format. Please use dd-MM-yyyy.");
+                }
             }
-            System.out.print("Enter new password (leave blank to keep current): ");
-            String newPassword = sc.nextLine();
-            if (!newPassword.trim().isEmpty()){
-                int hash = SimpleHash.hash(newPassword);
-                password_hash = hash;
+
+            // password update
+            while (true) {
+                System.out.print("Enter password (min 8 chars, at least 1 special character)(leave blank to keep current): ");
+                String newPassword = sc.nextLine();
+                if (!newPassword.trim().isEmpty()) {
+                    boolean isLengthValid = newPassword.length() >= 8;
+                    boolean hasSpecialChar = newPassword.matches(".*[^a-zA-Z0-9].*");
+                    if (!isLengthValid || !hasSpecialChar) {
+                        System.out.println("❌ Password must be at least 8 characters and contain at least one special character.");
+                        continue;
+                    }
+                    System.out.print("Confirm password: ");
+                    String confirmPassword = sc.nextLine();
+                    if (newPassword.equals(confirmPassword)) {
+                        password_hash = SimpleHash.hash(confirmPassword);
+                        break;
+                    } else {
+                        System.out.println("❌ Passwords do not match. Please try again.");
+                    }
+                }else {
+                    break;
+                }
             }
 
             // Step 2: Update in DB
@@ -351,7 +465,11 @@ public class Customer {
             System.out.println("❌ Error updating profile: " + e.getMessage());
         }
     }
+
+    // Book a car
     public void bookCar()  {
+        // simplified: check car, take trip details, calculate cost, insert booking
+
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter Car ID to book: ");
             int carId = sc.nextInt();
@@ -442,7 +560,10 @@ public class Customer {
         }
     }
 
+    // View all bookings (active + returned)
     public void viewMyBookings(){
+        // fetch bookings from DB and print neatly
+
         try (Connection conn = DBConnect.getConnection()) {
 
             String baseSelect = """
@@ -508,8 +629,10 @@ public class Customer {
         if (!any) System.out.println("ℹ️ None.");
     }
 
-    public void cancelBooking()
-    {
+    // Cancel an active booking
+    public void cancelBooking(){
+        // list bookings, choose one, cancel + update availability
+
         try (Connection conn = DBConnect.getConnection()) {
             // 1. List active bookings for this customer
             String listBookingsSql =
@@ -551,7 +674,7 @@ public class Customer {
 
             // 3. Retrieve car_id for the booking to cancel and verify ownership
             String getCarIdSql = "SELECT car_id FROM bookings WHERE booking_id = ? AND customer_id = ?";
-            int carId = -1;
+            int carId ;
 
             try (PreparedStatement psGetCar = conn.prepareStatement(getCarIdSql)) {
                 psGetCar.setInt(1, bookingIdToCancel);
@@ -592,7 +715,10 @@ public class Customer {
         }
     }
 
+    // Give rating for returned cars
     public void giveRating() {
+        // check returned cars, insert into ratings
+
         try (Connection conn = DBConnect.getConnection()) {
             // Show cars the customer has returned
             String returnedCarsQuery = """
@@ -670,7 +796,10 @@ public class Customer {
         }
     }
 
+    // Return a car + handle billing and payment
     public void returnCar() {
+        // calculate final cost, process payment, save bill, update DB
+
         try (Connection conn = DBConnect.getConnection()) {
             // 1. Show active bookings
             String query = "SELECT * FROM bookings WHERE customer_id = ? AND (status = 'Booked' OR status = 'Overdue') AND start_datetime <= NOW()";
@@ -701,7 +830,7 @@ public class Customer {
             System.out.print("\nEnter Booking ID to return car: ");
             int bookingId = sc.nextInt();
 
-            String getBooking = "SELECT * FROM bookings WHERE booking_id = ? AND customer_id = ? AND (status = 'Booked' Or status = 'Overdue') AND end_datetime <= NOW()";
+            String getBooking = "SELECT * FROM bookings WHERE booking_id = ? AND customer_id = ? AND (status = 'Booked' Or status = 'Overdue') AND start_datetime <= NOW()";
             try (PreparedStatement ps = conn.prepareStatement(getBooking)) {
                 ps.setInt(1, bookingId);
                 ps.setInt(2, customer_Id);
@@ -775,26 +904,28 @@ public class Customer {
                         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
                         String bill =
-                                "\n========== 🧾 RENTAL BILL ==========\n" +
-                                        String.format("📄 Booking ID     : %d\n", bookingId) +
-                                        String.format("🚗 Car ID         : %d\n", carId) +
-                                        String.format("🔤 Model          : %s\n", model) +
-                                        String.format("🏷️ Brand          : %s\n", brand) +
-                                        String.format("🚘 Type           : %s\n", type) +
-                                        String.format("🪑 Seats          : %d\n", seats) +
-                                        "-----------------------------------\n" +
-                                        String.format("📍 Start Time     : %s\n", start.format(fmt)) +
-                                        String.format("📍 Expected Return: %s\n", expectedEnd.format(fmt)) +
-                                        String.format("📍 Actual Return  : %s\n", now.format(fmt)) +
-                                        "-----------------------------------\n" +
+                                "\n=====================================\n" +
+                                        "           🧾  RENTAL BILL  🧾\n" +
+                                        "=====================================\n" +
+                                        String.format("📄 Booking ID      : %d\n", bookingId) +
+                                        String.format("🚗 Car ID          : %d\n", carId) +
+                                        String.format("🔤 Model           : %s\n", model) +
+                                        String.format("🏷️ Brand           : %s\n", brand) +
+                                        String.format("🚘 Type            : %s\n", type) +
+                                        String.format("🪑 Seats           : %d\n", seats) +
+                                        "-------------------------------------\n" +
+                                        String.format("📍 Start Time      : %s\n", start.format(fmt)) +
+                                        String.format("📍 Expected Return : %s\n", expectedEnd.format(fmt)) +
+                                        String.format("📍 Actual Return   : %s\n", now.format(fmt)) +
+                                        "-------------------------------------\n" +
                                         String.format("⏱ Total Hours     : %.1f hrs\n", rentalHours) +
                                         String.format("💰 Base Price      : ₹%.2f\n", pricePerHour * rentalHours) +
                                         String.format("⏰ Late Hours      : %.1f hrs\n", lateHours) +
                                         String.format("🔻 Late Fee        : ₹%.2f\n", lateFee) +
-                                        "-----------------------------------\n" +
+                                        "-------------------------------------\n" +
                                         String.format("💳 Total Paid      : ₹%.2f\n", totalCost) +
                                         String.format("💳 Payment Method  : %s\n", paymentMethod) +
-                                        "✅ Thank you for choosing CarVerse!\n" +
+                                        "\n✅ Thank you for choosing CarVerse!\n" +
                                         "=====================================\n";
 
                         // Print to console
@@ -863,6 +994,7 @@ public class Customer {
         }
     }
 
+    // Save bill as file
     String billing( String bill, int bookingId) {
 
         // Save this bill as its own file and RETURN the path (e.g., Bill_123.txt)
@@ -875,7 +1007,10 @@ public class Customer {
 
         return singleBillPath;
     }
+
+    // Send bill as email with attachment
     public void sendBillEmail(String toEmail, String billFilePath) {
+        // uses Jakarta Mail API to send rental bill
         final String fromEmail = "prithvitpatel@gmail.com";
         final String password  = "zsfm thja pida jfia";
 
