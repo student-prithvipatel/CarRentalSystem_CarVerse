@@ -164,3 +164,14 @@ End Date & Time: 2025-09-05 15:00
 - AI-powered dynamic pricing (based on demand & time)
 - Online payment gateway integration
 - Cloud deployment (AWS / Azure)
+  
+---
+
+## 👤 Author
+
+- **Prithvi Patel**  
+  [@student-prithvipatel](https://github.com/student-prithvipatel)
+- **Het Mewada**  
+  [@hetmewada0103](https://github.com/hetmewada0103)
+- **Vansh Gajjar**  
+  [@vanshgajjar](https://github.com/vanshgajjar)
