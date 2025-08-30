@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Rental {
+
+    // Calculates rental cost using stored procedure (calculate_rental_cost).
     public static Map<String, Double> costCalculator(
             LocalDateTime start,
             LocalDateTime expectedEnd,
