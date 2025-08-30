@@ -13,11 +13,16 @@ public final class PaymentFactory {
      */
     public static String chooseAndPay(Scanner sc, double amount) {
         while (true) {
-            System.out.println("Choose Payment Method: ");
-            System.out.println("1. Cash");
-            System.out.println("2. Card");
-            System.out.println("3. UPI");
-            System.out.print("Enter your choice: ");
+            System.out.println("\n=====================================");
+            System.out.println("💳   Choose Payment Method   💰");
+            System.out.println("=====================================\n");
+
+            System.out.println("1️⃣  Cash");
+            System.out.println("2️⃣  Card");
+            System.out.println("3️⃣  UPI");
+
+            System.out.println("\n-------------------------------------");
+            System.out.print("👉 Enter your choice (1 - 3): ");
 
             int choice = CarVerse.getIntInput(1, 3);
 
