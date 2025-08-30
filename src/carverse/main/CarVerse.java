@@ -1,8 +1,8 @@
 package carverse.main;
 
-import carverse.admin.Admin;
-import carverse.customer.Customer;
-import carverse.db.DBConnect;
+import carverse.admin.Admin; // Admin-related features
+import carverse.customer.Customer; // Customer-related feature
+import carverse.db.DBConnect; // Database connection utility
 
 import java.sql.*;
 import java.sql.SQLException;
@@ -14,86 +14,98 @@ public class CarVerse {
     static Admin admin = new Admin();
     static Customer customer = new Customer();
 
-    public static void main(String[] args) throws SQLException {
+    // Main menu (entry point)
+    public static void main(String[] args) {
         int choice;
         do {
             System.out.println();
-            System.out.println("<><><> Welcome to CarVerse <><><>");
-            System.out.println();
-            System.out.println("1. User login");
-            System.out.println("2. User registration");
-            System.out.println("3. Admin login");
-            System.out.println("4. Exit");
-            System.out.println("Enter choice from 1 to 4");
+            System.out.println("\n=====================================");
+            System.out.println("🚗✨   Welcome to CarVerse   ✨🚗");
+            System.out.println("=====================================\n");
+
+            System.out.println("1️⃣  User Login");
+            System.out.println("2️⃣  User Registration");
+            System.out.println("3️⃣  Admin Login");
+            System.out.println("4️⃣  Exit");
+
+            System.out.println("\n-------------------------------------");
+            System.out.print("👉 Choose an option (1 - 4): ");
             choice = getIntInput(1, 4);
             switch (choice) {
                 case 1:
-                    customer.customerLogin();
+                    customer.customerLogin(); // login existing customer
                     break;
                 case 2:
-                    customer.customerRegistartion();
+                    customer.customerRegistartion(); // new customer registration
                     break;
                 case 3:
-                    admin.adminLogin();
+                    admin.adminLogin(); // admin login
                     break;
                 case 4:
-                    System.out.println("Good Bye>>>");
+                    System.out.println("Good Bye>>>"); // exit program
             }
         } while (choice != 4);
     }
 
+    // Admin menu options
     public static void adminMenu() throws SQLException {
         int choice;
         do {
-            System.out.println("\n=== Admin Menu ===");
-            System.out.println("1. Add Car");
-            System.out.println("2. View All Cars");
-            System.out.println("3. Update Car Details");
-            System.out.println("4. View Available Cars");
-            System.out.println("5. Update Car Availability");
-            System.out.println("6. Currently Rented Cars");
-            System.out.println("7. View Overdue Rentals");
-            System.out.println("8. Generate Reports");
-            System.out.println("9. Remove Car");
-            System.out.println("10. View all customers ");
-            System.out.println("11. Logout");
-            System.out.print("Enter choice: ");
+            System.out.println();
+            System.out.println("\n=====================================");
+            System.out.println("🛠️   CarVerse - Admin Menu   🛠️");
+            System.out.println("=====================================\n");
+
+            System.out.println("1️⃣  Add Car");
+            System.out.println("2️⃣  View All Cars");
+            System.out.println("3️⃣  Update Car Details");
+            System.out.println("4️⃣  View Available Cars");
+            System.out.println("5️⃣  Update Car Availability");
+            System.out.println("6️⃣  Currently Rented Cars");
+            System.out.println("7️⃣  View Overdue Rentals");
+            System.out.println("8️⃣  Generate Reports");
+            System.out.println("9️⃣  Remove Car");
+            System.out.println("🔟  View All Customers");
+            System.out.println("1️⃣1️⃣ Logout");
+
+            System.out.println("\n-------------------------------------");
+            System.out.print("👉 Choose an option (1 - 11): ");
             choice = getIntInput(1, 11);
 
             switch (choice) {
                 case 1:
-                    admin.addCar();
+                    admin.addCar();                // add new car
                     break;
                 case 2:
-                    admin.viewAllCars();
+                    admin.viewAllCars();           // view all cars
                     break;
                 case 3:
-                    admin.updateCarDetails();
+                    admin.updateCarDetails();      // update car details
                     break;
                 case 4:
-                    admin.viewAvailableCars();
+                    admin.viewAvailableCars();     // view available cars
                     break;
                 case 5:
-                    admin.viewAvailableCars();
+                    admin.viewAllCars();           // update car availability
                     admin.updateCarAvailability();
                     break;
                 case 6:
-                    admin.viewCurrentlyRentedCars();
+                    admin.viewCurrentlyRentedCars(); // view cars currently rented
                     break;
                 case 7:
-                    admin.viewOverdueRentals();
+                    admin.viewOverdueRentals();     // view overdue rentals
                     break;
                 case 8:
-                    admin.generateReports();
+                    admin.generateReports();       // generate reports
                     break;
                 case 9:
-                    admin.removeCar();
+                    admin.removeCar();             // remove car
                     break;
                 case 10:
-                    admin.viewAllCustomer();
+                    admin.viewAllCustomer();      // view all customers
                     break;
                 case 11:
-                    System.out.println("Admin logged out.");
+                    System.out.println("Admin logged out.");  // logout
                     System.out.println();
                     break;
                 default:
@@ -102,46 +114,53 @@ public class CarVerse {
         } while (choice != 11);
     }
 
+    // Customer menu options
     public static void customerMenu() throws SQLException {
         int choice;
         do {
-            System.out.println("\n=== Customer Menu ===");
-            System.out.println("1. Search Available Cars");
-            System.out.println("2. Book a Car");
-            System.out.println("3. View My Bookings");
-            System.out.println("4. Cancel Booking");
-            System.out.println("5. Return Car");
-            System.out.println("6. Rate a Car");
-            System.out.println("7. Update Profile");
-            System.out.println("8. Logout");
-            System.out.print("Enter choice: ");
+            System.out.println();
+            System.out.println("\n=====================================");
+            System.out.println("👤   CarVerse - Customer Menu   👤");
+            System.out.println("=====================================\n");
+
+            System.out.println("1️⃣  Search Available Cars");
+            System.out.println("2️⃣  Book a Car");
+            System.out.println("3️⃣  View My Bookings");
+            System.out.println("4️⃣  Cancel Booking");
+            System.out.println("5️⃣  Return Car");
+            System.out.println("6️⃣  Rate a Car");
+            System.out.println("7️⃣  Update Profile");
+            System.out.println("8️⃣  Logout");
+
+            System.out.println("\n-------------------------------------");
+            System.out.print("👉 Choose an option (1 - 8): ");
             choice = getIntInput(1, 8);
 
             switch (choice) {
                 case 1:
-                    admin.viewAvailableCars();
+                    admin.viewAvailableCars(); // search available cars
                     break;
                 case 2:
-                    admin.viewAvailableCars();
+                    admin.viewAvailableCars(); // book a car
                     customer.bookCar();
                     break;
                 case 3:
-                    customer.viewMyBookings();
+                    customer.viewMyBookings(); // view customer bookings
                     break;
                 case 4:
-                    customer.cancelBooking();
+                    customer.cancelBooking(); // cancel booking
                     break;
                 case 5:
-                    customer.returnCar();
+                    customer.returnCar();     // return rented car
                     break;
                 case 6:
-                    customer.giveRating();
+                    customer.giveRating();    // give rating to car
                     break;
                 case 7:
-                    customer.updateProfile();
+                    customer.updateProfile(); // update customer profile
                     break;
                 case 8:
-                    System.out.println("Logged out.");
+                    System.out.println("Logged out."); // logout
                     System.out.println();
                     break;
                 default:
@@ -150,7 +169,7 @@ public class CarVerse {
         } while (choice != 8);
     }
 
-    // Utility method to safely read int
+    // Utility: get valid integer input
     public static int getIntInput(int min, int max) {
         while (true) {
             try {
@@ -165,10 +184,12 @@ public class CarVerse {
             } catch (InputMismatchException e) {
                 System.out.println("❌ Invalid input. Please enter a number.");
                 sc.nextLine();// clear wrong input
-                System.out.println("Enter your choice ");
+                System.out.print("Enter your choice: ");
             }
         }
     }
+
+    // Static block: auto-update overdue bookings
     static {
         try (Connection conn = DBConnect.getConnection()) {
             String sql = """
@@ -178,7 +199,7 @@ public class CarVerse {
                   AND end_datetime < NOW()
             """;
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                int rows = ps.executeUpdate();
+                int rows = ps.executeUpdate(); // mark expired bookings as overdue
                 if (rows > 0) {
                 }
             }
