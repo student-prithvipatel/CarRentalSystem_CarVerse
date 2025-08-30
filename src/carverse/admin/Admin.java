@@ -1,9 +1,9 @@
 package carverse.admin;
 
-import carverse.model.CustomerList;
-import carverse.model.CustomerNode;
-import carverse.db.DBConnect;
-import carverse.main.CarVerse;
+import carverse.model.CustomerList; // Linked list structure for customers
+import carverse.model.CustomerNode; // Node class for customer linked list
+import carverse.db.DBConnect; // DB connection utility
+import carverse.main.CarVerse; // To call CarVerse.adminMenu()
 
 import java.sql.*;
 import java.util.Scanner;
@@ -11,6 +11,7 @@ import java.util.Scanner;
 public class Admin {
     Scanner sc = new Scanner(System.in);
 
+    // Admin login (username + password check from DB)
     public void adminLogin() {
         try (Connection conn = DBConnect.getConnection()) {
             String query = "SELECT * FROM admin WHERE adminname = ? AND password = ?";
@@ -34,6 +35,7 @@ public class Admin {
         }
     }
 
+    // Add new car (via stored procedure addCar)
     public void addCar() {
         try (Connection conn = DBConnect.getConnection()) {
             String sql = "{CALL addCar(?, ?, ?, ?, ?, ?)}";
@@ -75,7 +77,10 @@ public class Admin {
         }
     }
 
+    // View all cars (with availability + average rating)
     public void viewAllCars() {
+        System.out.println("enter ratings");
+        double r = sc.nextDouble();
         try (Connection conn = DBConnect.getConnection()) {
             String query = "SELECT * FROM car";
             try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
@@ -95,8 +100,10 @@ public class Admin {
                     boolean available = rs.getBoolean("availability");
                     String status = available ? "Available" : "Booked";
                     double avgRating = getAverageRating(conn, id);
-                    System.out.printf("%-5d %-12s %-10s %-10s %-6d ₹%-13.2f %-12s ⭐%.1f\n",
-                            id, model, brand, type, seats, price, status, avgRating);
+                    if(r<=avgRating) {
+                        System.out.printf("%-5d %-12s %-10s %-10s %-6d ₹%-13.2f %-12s ⭐%.1f\n",
+                                id, model, brand, type, seats, price, status, avgRating);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -104,6 +111,7 @@ public class Admin {
         }
     }
 
+    // Update car details (brand, model, price, availability)
     public void updateCarDetails() {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter Car ID to update: ");
@@ -153,16 +161,23 @@ public class Admin {
         }
     }
 
+    // View available cars (with sorting options)
     public void viewAvailableCars() {
-        System.out.println("\n=== View Available Cars ===");
-        System.out.println("Sort by:");
-        System.out.println("1. Brand (A-Z)");
-        System.out.println("2. Brand (Z-A)");
-        System.out.println("3. Price per hour (Low to High)");
-        System.out.println("4. Car type");
-        System.out.println("5. Seats (Low to High)");
-        System.out.println("6. Seats (High to Low)");
-        System.out.print("Choose an option (1 to 6): ");
+
+        System.out.println("\n=====================================");
+        System.out.println("🚘   View Available Cars - Sort By   ");
+        System.out.println("=====================================\n");
+
+        System.out.println("1️⃣  Brand (A → Z)");
+        System.out.println("2️⃣  Brand (Z → A)");
+        System.out.println("3️⃣  Price per Hour (Low → High)");
+        System.out.println("4️⃣  Car Type");
+        System.out.println("5️⃣  Seats (Low → High)");
+        System.out.println("6️⃣  Seats (High → Low)");
+
+        System.out.println("\n-------------------------------------");
+        System.out.print("👉 Choose an option (1 - 6): ");
+
         int choice = CarVerse.getIntInput(1,6);
 
         String orderBy;
@@ -222,6 +237,7 @@ public class Admin {
         }
     }
 
+    // Update car availability (only if not booked)
     public void updateCarAvailability() {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter Car ID to update availability: ");
@@ -274,6 +290,7 @@ public class Admin {
         }
     }
 
+    // View currently rented cars
     public void viewCurrentlyRentedCars() throws SQLException {
         String sql = """
                     SELECT
@@ -327,6 +344,7 @@ public class Admin {
         }
     }
 
+    // View overdue rentals
     public void viewOverdueRentals() throws SQLException {
         String sql = """
                     SELECT booking_id, customer_id, car_id, start_location, end_location, start_datetime, end_datetime, total_hours,
@@ -379,18 +397,19 @@ public class Admin {
         }
     }
 
-
+    // Generate reports (cars, rentals, revenue, overdue, cancelled)
     public void generateReports() {
         try (Connection conn = DBConnect.getConnection()) {
             String totalCarsQuery = "SELECT COUNT(*) AS total_cars FROM car";
-            String totalRentalsQuery = "SELECT (SELECT COUNT(*) FROM bookings WHERE status = 'Booked') + (SELECT COUNT(*) FROM rental) AS total_rentals;";
+            String totalRentalsQuery = "SELECT COUNT(*) AS total_rentals FROM bookings;";
             String availableCarsQuery = "SELECT COUNT(*) AS available FROM car WHERE availability = 1";
             String rentedCarsQuery = "SELECT COUNT(*) AS rented FROM bookings WHERE status = 'Booked'";
             String overdueQuery = "SELECT COUNT(*) AS overdue FROM bookings WHERE status = 'Overdue' OR (status = 'Booked' AND end_datetime < CURRENT_TIMESTAMP)";
             String cancelledQuery = "SELECT COUNT(*) AS cancelled FROM bookings WHERE status = 'Cancelled'";
+            String ReturnedQuery = "SELECT COUNT(*) AS Returned FROM bookings WHERE status = 'Returned'";
             String totalRevenueQuery = "SELECT IFNULL(SUM(total_price), 0) AS revenue FROM rental WHERE total_price IS NOT NULL";
 
-            int totalCars = 0, totalRentals = 0, availableCars = 0, rentedCars = 0, overdueCount = 0, cancelledCount = 0;
+            int totalCars = 0, totalRentals = 0, availableCars = 0, rentedCars = 0, overdueCount = 0, cancelledCount = 0, returnCount = 0;
             double totalRevenue = 0;
 
             try (Statement stmt = conn.createStatement()) {
@@ -412,6 +431,9 @@ public class Admin {
                 try (ResultSet rs = stmt.executeQuery(cancelledQuery)) {
                     if (rs.next()) cancelledCount = rs.getInt("cancelled");
                 }
+                try (ResultSet rs = stmt.executeQuery(ReturnedQuery)) {
+                    if (rs.next()) returnCount = rs.getInt("Returned");
+                }
                 try (ResultSet rs = stmt.executeQuery(totalRevenueQuery)) {
                     if (rs.next()) totalRevenue = rs.getDouble("revenue");
                 }
@@ -424,6 +446,7 @@ public class Admin {
             System.out.println("Currently Rented Cars: " + rentedCars);
             System.out.println("Overdue Rentals: " + overdueCount);
             System.out.println("Cancelled Rentals: " + cancelledCount);
+            System.out.println("Returned Rentals: " + returnCount);
             System.out.printf("Total Revenue: ₹%.2f\n", totalRevenue);
             System.out.println("===============================\n");
         } catch (Exception e) {
@@ -431,6 +454,7 @@ public class Admin {
         }
     }
 
+    // Remove car from DB
     public void removeCar() {
         try (Connection conn = DBConnect.getConnection()) {
             System.out.print("Enter Car ID to remove: ");
@@ -463,6 +487,7 @@ public class Admin {
         }
     }
 
+    // Get average rating for car (via SQL function)
     private double getAverageRating(Connection conn, int carId) {
         String sql = "SELECT getAverageRating(?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -479,6 +504,7 @@ public class Admin {
         }
     }
 
+    // View all customers (using linked list)
     public void viewAllCustomer() {
         CustomerList list = new CustomerList();
 
