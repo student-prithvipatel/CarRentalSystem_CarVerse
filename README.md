@@ -50,7 +50,6 @@ CarVerse is a **Java + MySQL-based Car Rental System** that allows customers to 
 ---
 
 ## 📂 Project Structure  
-## 📂 Project Structure  
 
 ```text
 CarVerse/
@@ -62,3 +61,32 @@ CarVerse/
 ├── carverse.payment/     # Payment handling (Cash, Card, UPI)
 ├── carverse.rental/      # Rental cost calculation (Stored Procedure)
 └── database/             # SQL scripts (tables, procedures, functions)
+```
+---
+
+## 🗄️ Database Design  
+
+**Main Tables:**  
+- `admin` – Admin credentials  
+- `customer` – Customer details  
+- `car` – Car details (model, brand, type, seats, price, availability)  
+- `bookings` – Active bookings (start/end time, cost, status)  
+- `rental` – Returned rentals history  
+- `ratings` – Customer ratings for cars  
+- `payment` – Payment history & bill details  
+
+**Stored Procedure:**  
+- `addCar` → Insert new car  
+- `calculate_rental_cost` → Compute rental hours, late fees, total cost  
+
+**Function:**  
+- `getAverageRating(car_id)` → Returns average rating for a car  
+
+---
+
+## ⚡ Setup Instructions  
+
+### 1. Clone the Repository  
+```bash
+git clone https://github.com/yourusername/CarVerse.git
+cd CarVerse
