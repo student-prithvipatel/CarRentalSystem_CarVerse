@@ -50,4 +50,12 @@ CarVerse is a **Java + MySQL-based Car Rental System** that allows customers to 
 ---
 
 ## 📂 Project Structure  
-
+CarVerse/
+│── carverse.admin/ # Admin features
+│── carverse.customer/ # Customer features
+│── carverse.db/ # Database connection
+│── carverse.main/ # Entry point + menus
+│── carverse.model/ # Data structures & models
+│── carverse.payment/ # Payment handling (Cash, Card, UPI)
+│── carverse.rental/ # Rental cost calculation (Stored Procedure)
+│── database/ # SQL scripts (tables, procedures, functions)
